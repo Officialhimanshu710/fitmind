@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FitMind+ | Futuristic AI Health & Wellness</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter','ui-sans-serif','system-ui'] },
+          colors: {
+            neon: { teal:'#20F4C9', blue:'#3AA3FF', purple:'#A66BFF', pink:'#FF5FB7' }
+          },
+          boxShadow: {
+            glow: '0 0 20px rgba(32,244,201,0.35)',
+            glow2:'0 0 24px rgba(58,163,255,0.35)'
+          },
+          dropShadow: { neon: '0 0 8px rgba(32,244,201,0.6)' },
+        }
+      }
+    }
+  </script>
+
+  <!-- Theme on load -->
+  <script>
+    if (localStorage.theme === 'dark' ||
+       (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  </script>
+
+  <!-- Inter font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+
+  <!-- Lucide icons -->
+  <script src="https://unpkg.com/lucide@0.294.0/dist/umd/lucide.min.js"></script>
+
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+
+    /* show correct icon in theme toggle */
+    .sun-icon,.moon-icon { display:none }
+    html:not(.dark) .moon-icon { display:block }
+    html.dark .sun-icon { display:block }
+
+    /* Starfield (dark mode only) */
+    .starfield { display:none }
+    html.dark .starfield { display:block }
+    .starfield, .starfield::before, .starfield::after {
+      content: ""; position: fixed; inset: 0; background-repeat: repeat; pointer-events: none;
+    }
+    .starfield {
+      background-image: radial-gradient(2px 2px at 20px 30px, rgba(255,255,255,0.25) 0, transparent 40%),
+                        radial-gradient(1.5px 1.5px at 120px 80px, rgba(255,255,255,0.18) 0, transparent 40%),
+                        radial-gradient(1.2px 1.2px at 220px 160px, rgba(255,255,255,0.16) 0, transparent 40%);
+      background-size: 240px 240px, 260px 260px, 300px 300px;
+      animation: drift 120s linear infinite; opacity: .25;
+    }
+    .starfield::before {
+      background-image: radial-gradient(1.8px 1.8px at 60px 120px, rgba(255,255,255,0.22) 0, transparent 40%),
+                        radial-gradient(1.2px 1.2px at 180px 200px, rgba(255,255,255,0.18) 0, transparent 40%);
+      background-size: 280px 280px, 360px 360px; animation: drift 180s linear reverse infinite; opacity: .18;
+    }
+    .starfield::after {
+      background-image: radial-gradient(1.2px 1.2px at 30px 160px, rgba(255,255,255,0.18) 0, transparent 40%),
+                        radial-gradient(1px 1px at 260px 20px, rgba(255,255,255,0.15) 0, transparent 40%);
+      background-size: 340px 340px, 420px 420px; animation: drift 200s linear infinite; opacity: .14;
+    }
+    @keyframes drift { 0% { transform: translateY(0) } 100% { transform: translateY(-400px) } }
+
+    .mesh { background-image:
+      radial-gradient(1200px 500px at 10% -20%, rgba(32,244,201,0.28), transparent 60%),
+      radial-gradient(900px 400px at 90% 120%, rgba(58,163,255,0.25), transparent 60%),
+      radial-gradient(700px 300px at 40% 120%, rgba(166,107,255,0.20), transparent 60%);
+    }
+    .gridlines {
+      background-image:
+        linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px);
+      background-size: 40px 40px;
+      mask-image: radial-gradient(ellipse at center, rgba(0,0,0,.75), rgba(0,0,0,0.05));
+    }
+    html.dark .gridlines {
+      background-image:
+        linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px);
+    }
+    .blob { filter: blur(24px); opacity: .7; animation: blob 14s ease-in-out infinite; }
+    @keyframes blob {
+      0% { transform: translate(-10%, -10%) scale(1); }
+      33% { transform: translate(5%, -5%) scale(1.06); }
+      66% { transform: translate(-4%, 6%) scale(0.96); }
+      100% { transform: translate(-10%, -10%) scale(1); }
+    }
+    :target { scroll-margin-top: 96px; }
+    #planResult { transition: all .35s cubic-bezier(.2,.8,.2,1); }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 antialiased relative overflow-x-hidden">
+  <div class="starfield"></div>
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <nav class="mt-4 mb-4 flex items-center justify-between rounded-2xl border border-slate-200/60 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-md shadow-sm dark:shadow-glow2 px-3 sm:px-4 py-2">
+        <a href="#home" class="group flex items-center gap-2">
+          <span class="relative inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-neon-teal/20 to-neon-blue/20 ring-1 ring-black/5 dark:ring-white/10">
+            <svg viewBox="0 0 24 24" class="h-5 w-5 text-neon-teal group-hover:drop-shadow-neon transition"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10.012 10.012 0 0 0 12 2Zm-1 15v-4H8v-2h3V8l4 4Z"/></svg>
+          </span>
+          <span class="text-lg font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-neon-teal via-neon-blue to-neon-purple">FitMind+</span>
+        </a>
+
+        <!-- Desktop nav -->
+        <div class="hidden md:flex items-center gap-6">
+          <a class="text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white/90 transition" href="#features">Features</a>
+          <a class="text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white/90 transition" href="#demo">Demo</a>
+          <a class="text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white/90 transition" href="#about">About</a>
+        </div>
+
+        <!-- Right controls -->
+        <div class="flex items-center gap-2">
+          <button id="theme-toggle" class="relative inline-flex items-center justify-center h-10 w-10 rounded-xl border border-slate-200/70 dark:border-white/10 bg-white hover:bg-slate-50 dark:bg-white/5 dark:hover:bg-white/10 active:scale-95 transition">
+            <span class="sr-only">Toggle theme</span>
+            <i data-lucide="sun" class="sun-icon h-5 w-5"></i>
+            <i data-lucide="moon" class="moon-icon h-5 w-5"></i>
+          </button>
+          <button id="mobile-toggle" class="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200/70 dark:border-white/10 bg-white hover:bg-slate-50 dark:bg-white/5 dark:hover:bg-white/10">
+            <i data-lucide="menu" class="h-5 w-5"></i>
+          </button>
+        </div>
+      </nav>
+
+      <!-- Mobile menu -->
+      <div id="mobile-menu" class="md:hidden hidden rounded-2xl border border-slate-200/60 dark:border-white/10 bg-white/90 dark:bg-slate-900/80 backdrop-blur-md px-4 py-3 mb-4">
+        <a class="block px-2 py-2 rounded-lg text-slate-800 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" href="#features">Features</a>
+        <a class="block px-2 py-2 rounded-lg text-slate-800 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" href="#demo">Demo</a>
+        <a class="block px-2 py-2 rounded-lg text-slate-800 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" href="#about">About</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO -->
+    <section id="home" class="relative isolate">
+      <div class="mesh absolute inset-0 opacity-70"></div>
+      <div class="gridlines absolute inset-0"></div>
+      <div class="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-neon-teal/30 blob"></div>
+      <div class="pointer-events-none absolute top-32 -right-24 h-72 w-72 rounded-full bg-neon-purple/30 blob"></div>
+
+      <div class="mx-auto max-w-7xl px-6 pt-20 pb-24 sm:pt-28 sm:pb-32 lg:px-8 text-center">
+        <h1 class="text-4xl sm:text-6xl font-extrabold leading-tight tracking-tight">
+          <span class="bg-clip-text text-transparent bg-gradient-to-r from-neon-teal via-neon-blue to-neon-pink drop-shadow-neon">
+            Your Futuristic AI Wellness Partner
+          </span>
+        </h1>
+        <p class="mt-6 text-lg sm:text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
+          Unified physical + mental fitness with adaptive coaching, mood insights, and dynamic nutrition—rendered in a sleek, neon interface.
+        </p>
+        <div class="mt-10 flex justify-center">
+          <a href="#demo" class="group relative overflow-hidden rounded-xl px-6 py-3 text-slate-900 font-semibold
+              bg-gradient-to-r from-neon-teal to-neon-blue shadow-sm dark:shadow-glow
+              hover:shadow dark:hover:shadow-glow2 active:scale-95 transition">
+            <span class="relative z-10">Try Interactive Demo</span>
+            <span class="absolute inset-0 opacity-0 group-hover:opacity-100 transition bg-white/30 dark:bg-white/20"></span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section id="features" class="relative py-20 sm:py-24">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-3xl text-center">
+          <p class="text-sm font-bold tracking-widest text-neon-teal/90">THE SOLUTION</p>
+          <h2 class="mt-2 text-3xl sm:text-4xl font-extrabold">Holistic, Adaptive, Beautiful</h2>
+        </div>
+
+        <div class="mt-14 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="relative rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-md p-6 hover:bg-white/90 dark:hover:bg-white/10 transition group">
+            <div class="absolute inset-0 rounded-2xl ring-1 ring-neon-teal/10 dark:ring-neon-teal/20 group-hover:ring-neon-teal/30 transition"></div>
+            <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-neon-teal/20 to-neon-blue/20 ring-1 ring-black/5 dark:ring-white/10">
+              <i data-lucide="heart" class="h-7 w-7 text-neon-teal"></i>
+            </div>
+            <h3 class="mt-5 text-xl font-bold">AI Diet Planner</h3>
+            <p class="mt-2 text-slate-600 dark:text-slate-300">Personalized meals, macro targets, and auto-adjustments as your metrics change.</p>
+          </div>
+
+          <div class="relative rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-md p-6 hover:bg-white/90 dark:hover:bg-white/10 transition group">
+            <div class="absolute inset-0 rounded-2xl ring-1 ring-neon-blue/10 dark:ring-neon-blue/20 group-hover:ring-neon-blue/30 transition"></div>
+            <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-neon-blue/20 to-neon-purple/20 ring-1 ring-black/5 dark:ring-white/10">
+              <i data-lucide="activity" class="h-7 w-7 text-neon-blue"></i>
+            </div>
+            <h3 class="mt-5 text-xl font-bold">AI Workout Generator</h3>
+            <p class="mt-2 text-slate-600 dark:text-slate-300">Strength splits and home routines tuned to your goal, recovery, and schedule.</p>
+          </div>
+
+          <div class="relative rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-md p-6 hover:bg-white/90 dark:hover:bg-white/10 transition group">
+            <div class="absolute inset-0 rounded-2xl ring-1 ring-neon-purple/10 dark:ring-neon-purple/20 group-hover:ring-neon-purple/30 transition"></div>
+            <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-neon-purple/20 to-neon-pink/20 ring-1 ring-black/5 dark:ring-white/10">
+              <i data-lucide="brain" class="h-7 w-7 text-neon-purple"></i>
+            </div>
+            <h3 class="mt-5 text-xl font-bold">Mental Health Module</h3>
+            <p class="mt-2 text-slate-600 dark:text-slate-300">Mood tracking, mindful breaks, and supportive nudges based on your check-ins.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DEMO -->
+    <section id="demo" class="relative py-20 sm:py-24">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-3xl text-center">
+          <p class="text-sm font-bold tracking-widest text-neon-blue/90">WORKING DEMO</p>
+          <h2 class="mt-2 text-3xl sm:text-4xl font-extrabold">Experience FitMind+</h2>
+          <p class="mt-3 text-slate-600 dark:text-slate-300">All local—no keys needed. Try mood analysis, goals, calories, diet & workout plans.</p>
+        </div>
+
+        <div class="mt-14 rounded-3xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-md overflow-hidden shadow-sm dark:shadow-glow">
+          <div class="grid grid-cols-1 md:grid-cols-2">
+            <!-- Inputs -->
+            <div class="p-8 md:p-10">
+              <h3 class="text-2xl font-extrabold">Daily Check-in</h3>
+
+              <!-- Mood -->
+              <div class="mt-6">
+                <label for="moodInput" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">How are you feeling today?</label>
+                <textarea id="moodInput" rows="3" class="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-white/5 placeholder:text-slate-400 focus:ring-2 focus:ring-neon-teal/40 focus:outline-none p-3" placeholder="e.g., 'Exam is coming, I'm nervous but also a bit excited.'"></textarea>
+                <button id="analyzeMoodBtn" class="mt-3 w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white hover:bg-slate-50 dark:bg-gradient-to-r dark:from-neon-teal/20 dark:to-neon-blue/20 dark:hover:from-neon-teal/30 dark:hover:to-neon-blue/30 ring-1 ring-black/5 dark:ring-white/10 px-4 py-2 font-semibold active:scale-95 transition">
+                  <span class="inline-flex items-center gap-2"><i data-lucide="wand-2" class="h-4 w-4"></i> Analyze My Mood</span>
+                </button>
+              </div>
+
+              <!-- Goal -->
+              <div class="mt-8">
+                <label for="goalInput" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Primary goal</label>
+                <select id="goalInput" class="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-white/5 focus:ring-2 focus:ring-neon-blue/40 focus:outline-none p-3">
+                  <option value="lose-weight">Lose Weight</option>
+                  <option value="build-muscle">Build Muscle</option>
+                  <option value="maintain">Maintain Fitness & Wellness</option>
+                </select>
+                <button id="getPlanBtn" class="mt-3 w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white hover:bg-slate-50 dark:bg-gradient-to-r dark:from-neon-blue/20 dark:to-neon-purple/20 dark:hover:from-neon-blue/30 dark:hover:to-neon-purple/30 ring-1 ring-black/5 dark:ring-white/10 px-4 py-2 font-semibold active:scale-95 transition">
+                  <span class="inline-flex items-center gap-2"><i data-lucide="target" class="h-4 w-4"></i> Generate My Plan (Quick)</span>
+                </button>
+              </div>
+
+              <!-- Divider -->
+              <div class="my-8 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent dark:via-white/10"></div>
+
+              <!-- Calorie Calculator -->
+              <div>
+                <h4 class="text-xl font-extrabold">Daily Calorie Calculator</h4>
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label for="ageInput" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Age</label>
+                    <input id="ageInput" type="number" placeholder="e.g., 20" class="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-white/5 p-3 focus:ring-2 focus:ring-neon-teal/40 focus:outline-none"/>
+                  </div>
+                  <div>
+                    <label for="genderInput" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Gender</label>
+                    <select id="genderInput" class="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-white/5 p-3 focus:ring-2 focus:ring-neon-teal/40 focus:outline-none">
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="weightInput" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Weight (kg)</label>
+                    <input id="weightInput" type="number" placeholder="e.g., 70" class="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-white/5 p-3 focus:ring-2 focus:ring-neon-teal/40 focus:outline-none"/>
+                  </div>
+                  <div>
+                    <label for="heightInput" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Height (cm)</label>
+                    <input id="heightInput" type="number" placeholder="e.g., 175" class="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-white/5 p-3 focus:ring-2 focus:ring-neon-teal/40 focus:outline-none"/>
+                  </div>
+                </div>
+
+                <div class="mt-4">
+                  <label for="activityInput" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Activity Level</label>
+                  <select id="activityInput" class="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-white/5 p-3 focus:ring-2 focus:ring-neon-blue/40 focus:outline-none">
+                    <option value="1.2">Sedentary (little or no exercise)</option>
+                    <option value="1.375">Lightly Active (1–3 days/wk)</option>
+                    <option value="1.55">Moderately Active (3–5 days/wk)</option>
+                    <option value="1.725">Very Active (6–7 days/wk)</option>
+                    <option value="1.9">Extra Active (physical job)</option>
+                  </select>
+                </div>
+                <button id="calculateCaloriesBtn" class="mt-4 w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white hover:bg-slate-50 dark:bg-gradient-to-r dark:from-neon-teal/20 dark:to-neon-blue/20 dark:hover:from-neon-teal/30 dark:hover:to-neon-blue/30 ring-1 ring-black/5 dark:ring-white/10 px-4 py-2 font-semibold active:scale-95 transition">
+                  <span class="inline-flex items-center gap-2"><i data-lucide="flame" class="h-4 w-4"></i> Calculate My Calories</span>
+                </button>
+              </div>
+
+              <!-- Divider -->
+              <div class="my-8 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent dark:via-white/10"></div>
+
+              <!-- Diet & Workout specific inputs -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label for="dietTypeInput" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Diet Preference</label>
+                  <select id="dietTypeInput" class="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-white/5 p-3 focus:ring-2 focus:ring-neon-blue/40 focus:outline-none">
+                    <option value="balanced">Balanced</option>
+                    <option value="vegetarian">Vegetarian</option>
+                    <option value="vegan">Vegan</option>
+                    <option value="high-protein">High Protein</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="mealsPerDayInput" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Meals / day</label>
+                  <select id="mealsPerDayInput" class="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-white/5 p-3 focus:ring-2 focus:ring-neon-blue/40 focus:outline-none">
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="equipmentInput" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Equipment</label>
+                  <select id="equipmentInput" class="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-white/5 p-3 focus:ring-2 focus:ring-neon-blue/40 focus:outline-none">
+                    <option value="home">Home (Minimal)</option>
+                    <option value="gym">Gym (Full)</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="daysPerWeekInput" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Days / week</label>
+                  <select id="daysPerWeekInput" class="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-white/5 p-3 focus:ring-2 focus:ring-neon-blue/40 focus:outline-none">
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button id="dietPlanBtn" class="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white hover:bg-slate-50 dark:bg-gradient-to-r dark:from-neon-teal/20 dark:to-neon-blue/20 dark:hover:from-neon-teal/30 dark:hover:to-neon-blue/30 ring-1 ring-black/5 dark:ring-white/10 px-4 py-2 font-semibold active:scale-95 transition">
+                  <span class="inline-flex items-center gap-2"><i data-lucide="utensils" class="h-4 w-4"></i> AI Diet Plan</span>
+                </button>
+                <button id="workoutPlanBtn" class="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white hover:bg-slate-50 dark:bg-gradient-to-r dark:from-neon-blue/20 dark:to-neon-purple/20 dark:hover:from-neon-blue/30 dark:hover:to-neon-purple/30 ring-1 ring-black/5 dark:ring-white/10 px-4 py-2 font-semibold active:scale-95 transition">
+                  <span class="inline-flex items-center gap-2"><i data-lucide="dumbbell" class="h-4 w-4"></i> AI Workout Plan</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Output panel -->
+            <div class="relative bg-gradient-to-b from-white/0 to-white/0 md:to-white/50 dark:from-white/0 dark:to-white/5 p-8 md:p-10">
+              <div class="absolute inset-0 pointer-events-none">
+                <div class="absolute -top-20 -left-16 h-40 w-40 rounded-full bg-neon-teal/20 blur-2xl"></div>
+                <div class="absolute -bottom-24 -right-16 h-48 w-48 rounded-full bg-neon-purple/20 blur-2xl"></div>
+              </div>
+
+              <h3 class="text-2xl font-extrabold">Your AI-Generated Output</h3>
+              <div id="planResult" class="mt-4 min-h-[260px] rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 p-6">
+                <p class="text-slate-500 dark:text-slate-400 italic">Your personalized recommendations will appear here...</p>
+              </div>
+
+              <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 p-3 text-sm"><span class="text-teal-600 dark:text-neon-teal font-semibold">Tip:</span> Take 2–3 short breaks during long study sessions.</div>
+                <div class="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 p-3 text-sm"><span class="text-blue-600 dark:text-neon-blue font-semibold">Tip:</span> Protect your sleep window like an exam slot.</div>
+                <div class="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 p-3 text-sm"><span class="text-purple-600 dark:text-neon-purple font-semibold">Tip:</span> One honest conversation beats 10 overthinking sessions.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABOUT (cleaned) -->
+    <section id="about" class="relative py-20 sm:py-24">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-4xl text-center">
+          <p class="text-sm font-bold tracking-widest text-neon-purple/90">ABOUT FITMIND+</p>
+          <h2 class="mt-2 text-3xl sm:text-4xl font-extrabold">What is this website?</h2>
+          <p class="mt-3 text-slate-700 dark:text-slate-300">
+            FitMind+ is a concept web app that unifies <strong>fitness</strong> and <strong>mental wellness</strong>.
+            It provides a daily mood check-in, instant calorie math (Mifflin–St Jeor), and simple AI-style generators
+            for <em>diets</em> and <em>workouts</em> tailored to your inputs — all locally, with no API keys.
+          </p>
+        </div>
+
+        <div class="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-md p-6">
+            <h3 class="text-lg font-bold">How it works</h3>
+            <ul class="mt-2 list-disc list-inside text-slate-700 dark:text-slate-300">
+              <li>Local mood heuristic (no network calls).</li>
+              <li>Calorie estimates via Mifflin–St Jeor + activity factor.</li>
+              <li>Rule-based “AI” diet & workout generators using your inputs.</li>
+            </ul>
+          </div>
+          <div class="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-md p-6">
+            <h3 class="text-lg font-bold">Try it now</h3>
+            <ul class="mt-2 list-disc list-inside text-slate-700 dark:text-slate-300">
+              <li>Enter your mood and get a supportive, context-aware suggestion.</li>
+              <li>Calculate daily calories, then generate a rough meal structure.</li>
+              <li>Pick equipment & days/week to get a simple workout plan.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="relative">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8 pb-14">
+      <div class="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-md p-6 text-center text-slate-600 dark:text-slate-400">
+        &copy; 2024 FitMind+. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+  <!-- Theme, Mobile menu + Lucide init -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      try { if (window.lucide) lucide.createIcons(); } catch(e) { console.warn('Lucide error', e); }
+
+      // Theme toggle
+      const themeBtn = document.getElementById('theme-toggle');
+      if (themeBtn) {
+        themeBtn.addEventListener('click', () => {
+          const isDark = document.documentElement.classList.toggle('dark');
+          localStorage.setItem('theme', isDark ? 'dark' : 'light');
+          try { if (window.lucide) lucide.createIcons(); } catch {}
+        });
+      }
+
+      // Mobile menu toggle
+      const mobileBtn = document.getElementById('mobile-toggle');
+      const mobileMenu = document.getElementById('mobile-menu');
+      if (mobileBtn && mobileMenu) {
+        mobileBtn.addEventListener('click', () => {
+          mobileMenu.classList.toggle('hidden');
+        });
+        // Close menu when clicking a link
+        mobileMenu.querySelectorAll('a').forEach(a => {
+          a.addEventListener('click', () => mobileMenu.classList.add('hidden'));
+        });
+      }
+    });
+
+    // Smooth scroll for hash links only
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('a[href^="#"]');
+      if (!a) return;
+      const id = a.getAttribute('href');
+      if (id && id.length > 1) {
+        const el = document.querySelector(id);
+        if (el) {
+          e.preventDefault();
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    });
+  </script>
+
+  <!-- Interactive Demo with stronger, more “real-world” mood analysis -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const planResult = document.getElementById('planResult');
+      const analyzeMoodBtn = document.getElementById('analyzeMoodBtn');
+      const getPlanBtn = document.getElementById('getPlanBtn');
+      const moodInput = document.getElementById('moodInput');
+      const goalInput = document.getElementById('goalInput');
+
+      const calculateCaloriesBtn = document.getElementById('calculateCaloriesBtn');
+      const ageInput = document.getElementById('ageInput');
+      const genderInput = document.getElementById('genderInput');
+      const weightInput = document.getElementById('weightInput');
+      const heightInput = document.getElementById('heightInput');
+      const activityInput = document.getElementById('activityInput');
+
+      const dietTypeInput = document.getElementById('dietTypeInput');
+      const mealsPerDayInput = document.getElementById('mealsPerDayInput');
+      const equipmentInput = document.getElementById('equipmentInput');
+      const daysPerWeekInput = document.getElementById('daysPerWeekInput');
+      const dietPlanBtn = document.getElementById('dietPlanBtn');
+      const workoutPlanBtn = document.getElementById('workoutPlanBtn');
+
+      if (!planResult) return;
+
+      // ---------- Helper functions ----------
+      function updateResult(html) {
+        planResult.innerHTML = html;
+        planResult.classList.remove('opacity-0','translate-y-1','scale-95');
+        planResult.classList.add('opacity-100');
+      }
+      function loadingRow(text) {
+        return `<div class="flex items-center">
+          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600 dark:border-neon-teal"></div>
+          <p class="ml-3 text-slate-700 dark:text-slate-300 text-sm">${text}</p>
+        </div>`;
+      }
+      function titleCase(s) { return s.split('-').map(w=>w[0].toUpperCase()+w.slice(1)).join(' '); }
+      function labelGoal(g) { return g==='lose-weight'?'Lose Weight': g==='build-muscle'?'Build Muscle':'Maintain & Wellness'; }
+      function pick(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+
+      // ---------- STRONGER SENTIMENT ANALYZER ----------
+      const emoLexicon = {
+        joy: ['happy','joy','excited','glad','great','awesome','amazing','fantastic','grateful','grateful','good news','promotion','celebrate','win','proud','satisfied'],
+        sadness: ['sad','down','upset','depressed','lonely','empty','cry','crying','heartbroken','hopeless','lost','disappointed'],
+        anger: ['angry','mad','furious','annoyed','irritated','pissed','rage','hate','fed up'],
+        anxiety: ['anxious','anxiety','nervous','stressed','stress','overwhelmed','pressure','panic','scared','afraid','worried','tension'],
+        tired: ['tired','exhausted','sleepy','drained','burnt out','burnout','fatigued'],
+        calm: ['calm','relaxed','chill','peaceful','okay','fine','normal','content'],
+        overwhelmed: ['too much','can\'t handle','handle this','no time','so many things','everything at once']
+      };
+
+      const realWorldTips = {
+        joy: [
+          "Take 2 minutes to note what went well today — future you can read it on a bad day.",
+          "Share this good news with someone you trust. Talking about it makes the memory stronger.",
+          "Lock in the win: ask yourself 'What did I do right here?' and repeat that pattern this week."
+        ],
+        sadness: [
+          "If you can, text or call one person you trust and be honest about how you're feeling.",
+          "Step away from your screen for 10–15 minutes, change your environment, and allow yourself to feel without judging it.",
+          "Pick one tiny task (like cleaning your desk or taking a shower) and complete it — small actions give your brain a sense of control."
+        ],
+        anger: [
+          "Before replying or arguing with anyone, write what you want to say in your notes app, wait 5 minutes, and then decide if you still want to send it.",
+          "Change your physical location for a few minutes — walk to another room, wash your face, or get fresh air to cool down a bit.",
+          "If someone triggered this, ask yourself: ‘What exactly crossed my boundary?’ That helps you respond instead of just reacting."
+        ],
+        anxiety: [
+          "List the 3 biggest things worrying you and break each into one tiny next step. Only focus on step 1 for now.",
+          "If it's exam or work stress, set a 25-minute timer (Pomodoro) and do focused work on just one thing. Action kills some of the anxiety.",
+          "Try the 5–4–3–2–1 grounding: name 5 things you see, 4 you can touch, 3 you hear, 2 you smell, 1 you can taste."
+        ],
+        tired: [
+          "If possible, close your eyes for 15–20 minutes or at least lie down without your phone — micro rest is better than pushing on empty.",
+          "Look at your day and see if you can cancel or postpone one non-essential task. Protect your energy like it's a limited battery.",
+          "Plan one simple relaxing thing for tonight: music, a walk, or a no-phone break before sleep."
+        ],
+        calm: [
+          "Great time to handle one important but annoying task — you have enough emotional bandwidth right now.",
+          "You could schedule a short walk, stretch session, or journaling block to maintain this balance.",
+          "Use this calm state to plan your next 2–3 days realistically so future you has less stress."
+        ],
+        overwhelmed: [
+          "Write everything that's in your head into a quick brain dump. Then choose just ONE thing to do in the next 20 minutes.",
+          "Say this to yourself: 'I don't need to fix my whole life today, just the next step.' Focus on that.",
+          "If tasks are from different areas (study, family, health), choose one area to work on today and park the rest for tomorrow."
+        ],
+        neutral: [
+          "Do a 2-minute reset: stand up, stretch your neck and shoulders, take a few slow breaths, then continue.",
+          "Ask yourself: 'What small action today would make tomorrow slightly easier?' Then do just that.",
+          "Maybe add one tiny joy to your day — a song you like, 5 minutes of sunlight, or a short walk without your phone."
+        ]
+      };
+
+      const sentimentColors = {
+        Positive: 'text-emerald-600 dark:text-neon-teal',
+        Negative: 'text-blue-600 dark:text-neon-blue',
+        Stressed: 'text-orange-600 dark:text-neon-pink',
+        Neutral: 'text-slate-800 dark:text-slate-200'
+      };
+
+      function computeEmotion(text) {
+        const t = text.toLowerCase();
+        const scores = {
+          joy: 0, sadness: 0, anger: 0, anxiety: 0, tired: 0, calm: 0, overwhelmed: 0
+        };
+
+        // word-based scoring
+        for (const [emo, words] of Object.entries(emoLexicon)) {
+          words.forEach(w => {
+            if (t.includes(w)) scores[emo] += 1;
+          });
+        }
+
+        // emoji / punctuation intensity
+        const exclamations = (text.match(/!/g) || []).length;
+        const emojis = (text.match(/[\u{1F600}-\u{1F64F}\u{2700}-\u{27BF}\u{1F300}-\u{1F5FF}]/gu) || []).length;
+        const capsWords = (text.match(/[A-Z]{3,}/g) || []).length;
+
+        const intensity = Math.min(5,
+          (exclamations * 0.7) +
+          (emojis * 0.7) +
+          (capsWords * 0.5) +
+          (Math.max(...Object.values(scores)) || 0)
+        );
+
+        // if nothing matched, neutral
+        const maxScore = Math.max(...Object.values(scores));
+        let dominant = 'neutral';
+        if (maxScore > 0) {
+          dominant = Object.entries(scores).sort((a,b) => b[1] - a[1])[0][0];
+        }
+
+        // map emotion -> high-level sentiment
+        let sentiment = 'Neutral';
+        if (dominant === 'joy' || dominant === 'calm') sentiment = 'Positive';
+        if (dominant === 'sadness' || dominant === 'anger') sentiment = 'Negative';
+        if (dominant === 'anxiety' || dominant === 'overwhelmed') sentiment = 'Stressed';
+
+        return { dominant, sentiment, intensity: Math.max(1, Math.round(intensity)) };
+      }
+
+      function buildMoodResponse({dominant, sentiment, intensity}, originalText) {
+        // choose intro line based on emotion
+        const intros = {
+          joy: [
+            "Love this — it really sounds like something good is happening for you.",
+            "Your message radiates good energy."
+          ],
+          sadness: [
+            "That genuinely sounds heavy, and it's okay to feel like this.",
+            "Reading that, I can sense you're going through a tough moment."
+          ],
+          anger: [
+            "Your message has a lot of heat, which makes sense if something felt unfair.",
+            "It sounds like you're really irritated — anyone in your place might feel similar."
+          ],
+          anxiety: [
+            "I can see there's a lot on your mind right now.",
+            "Your words show a mix of worry and overthinking."
+          ],
+          tired: [
+            "Your energy feels low in this message.",
+            "What you're describing sounds draining."
+          ],
+          calm: [
+            "You sound fairly steady and grounded at the moment.",
+            "Your mood seems relatively balanced right now."
+          ],
+          overwhelmed: [
+            "That 'too much at once' feeling you're describing is very real.",
+            "Sounds like your brain has 20 tabs open at the same time."
+          ],
+          neutral: [
+            "Thanks for sharing that check-in.",
+            "Got it — your mood feels pretty neutral from this."
+          ]
+        };
+
+        const key = intros[dominant] ? dominant : 'neutral';
+        const intro = pick(intros[key]);
+        const suggestions = realWorldTips[dominant] || realWorldTips['neutral'];
+        const tip = pick(suggestions);
+
+        let intensityLine = "";
+        if (intensity >= 4 && (dominant === 'sadness' || dominant === 'anger' || dominant === 'anxiety' || dominant === 'overwhelmed')) {
+          intensityLine = " This sounds more than just a small mood swing, so please be gentle with yourself and, if you can, involve a real person you trust.";
+        } else if (intensity >= 4 && dominant === 'joy') {
+          intensityLine = " This is a big high point — enjoy it fully and remember what got you here.";
+        }
+
+        return `${intro} ${tip}${intensityLine}`;
+      }
+
+      if (analyzeMoodBtn && moodInput) {
+        analyzeMoodBtn.addEventListener('click', () => {
+          const moodText = (moodInput.value || '').trim();
+
+          if (!moodText) {
+            updateResult(`
+              <h4 class="font-bold text-red-600 dark:text-red-400">Please enter your mood.</h4>
+              <p class="text-slate-600 dark:text-slate-300 mt-2">Write how your day actually feels — chill, messy, amazing, anything. More detail = better suggestion.</p>
+            `);
+            return;
+          }
+
+          updateResult(loadingRow("Reading your message and figuring out the vibe..."));
+
+          setTimeout(() => {
+            const analysis = computeEmotion(moodText);
+            const { sentiment, dominant, intensity } = analysis;
+
+            const colorClass = sentimentColors[sentiment] || sentimentColors['Neutral'];
+            const readableEmotion = dominant.charAt(0).toUpperCase() + dominant.slice(1);
+            const paragraph = buildMoodResponse(analysis, moodText);
+
+            const html = `
+              <h4 class="font-bold ${colorClass}">Sentiment: ${sentiment} &mdash; ${readableEmotion}</h4>
+              <p class="text-slate-700 dark:text-slate-300 mt-2 text-sm leading-relaxed">
+                ${paragraph}
+              </p>
+              <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                Intensity (how strong it sounds): <strong>${intensity}/5</strong> &bull;
+                Remember: this is just a simple on-device heuristic, not a medical opinion.
+              </p>
+            `;
+            updateResult(html);
+          }, 350);
+        });
+      }
+
+      // ---------- Calorie Calculation ----------
+      if (calculateCaloriesBtn) {
+        calculateCaloriesBtn.addEventListener('click', () => {
+          const age = parseFloat(ageInput?.value);
+          const gender = genderInput?.value;
+          const weight = parseFloat(weightInput?.value);
+          const height = parseFloat(heightInput?.value);
+          const activityFactor = parseFloat(activityInput?.value);
+
+          if (!age || !weight || !height || age <= 0 || weight <= 0 || height <= 0) {
+            updateResult(`
+              <h4 class="font-bold text-red-600 dark:text-red-400">Invalid Input</h4>
+              <p class="text-slate-700 dark:text-slate-300 mt-2">Enter a valid age, weight, and height to calculate your estimated calories.</p>
+            `);
+            return;
+          }
+
+          const bmr = (gender === 'male')
+            ? (10 * weight) + (6.25 * height) - (5 * age) + 5
+            : (10 * weight) + (6.25 * height) - (5 * age) - 161;
+
+          const tdee = bmr * (activityFactor || 1.2);
+
+          updateResult(`
+            <h4 class="font-bold text-teal-700 dark:text-neon-teal">Calorie Needs (TDEE)</h4>
+            <p class="text-4xl font-extrabold mt-2 text-slate-900 dark:text-white">
+              ${Math.round(tdee)} <span class="text-base font-normal text-slate-500 dark:text-slate-400">kcal/day</span>
+            </p>
+            <p class="text-slate-700 dark:text-slate-300 mt-3">
+              Rough estimate of how many calories you need per day to maintain your current weight at your activity level.
+            </p>
+            <div class="mt-3 text-sm text-slate-600 dark:text-slate-400">
+              Basal Metabolic Rate (BMR): <strong>${Math.round(bmr)} kcal/day</strong>
+            </div>
+          `);
+        });
+      }
+
+      // ---------- Quick combined plan ----------
+      if (getPlanBtn && goalInput) {
+        getPlanBtn.addEventListener('click', () => {
+          const goal = goalInput.value;
+          let resultHtml = '';
+          switch (goal) {
+            case 'lose-weight':
+              resultHtml = `
+                <h4 class="font-bold text-blue-700 dark:text-neon-blue">Goal: Lose Weight</h4>
+                <p class="text-slate-700 dark:text-slate-300 mt-2">
+                  <strong>Diet:</strong> Stay in a small calorie deficit with high protein and mostly home-cooked food.
+                  Focus on simple meals you can repeat (e.g., dal + rice + sabzi, curd + fruit, eggs).
+                </p>
+                <p class="text-slate-700 dark:text-slate-300 mt-2">
+                  <strong>Movement:</strong> Aim for 3 days of strength training (home or gym) + 2 days of light cardio like walking or cycling.
+                </p>
+              `;
+              break;
+            case 'build-muscle':
+              resultHtml = `
+                <h4 class="font-bold text-purple-700 dark:text-neon-purple">Goal: Build Muscle</h4>
+                <p class="text-slate-700 dark:text-slate-300 mt-2">
+                  <strong>Diet:</strong> Small surplus (around +250–300 kcal) with 1.6–2g protein per kg body weight.
+                  Don't chase dirty bulk; keep it clean most days.
+                </p>
+                <p class="text-slate-700 dark:text-slate-300 mt-2">
+                  <strong>Movement:</strong> 4 sessions per week focusing on progressive overload (Push / Pull / Legs + 1 upper/lower mix).
+                </p>
+              `;
+              break;
+            default:
+              resultHtml = `
+                <h4 class="font-bold text-teal-700 dark:text-neon-teal">Goal: Maintain & Wellness</h4>
+                <p class="text-slate-700 dark:text-slate-300 mt-2">
+                  <strong>Diet:</strong> Mostly balanced plates: 1/2 veggies, 1/4 protein, 1/4 carbs, plus some healthy fats.
+                </p>
+                <p class="text-slate-700 dark:text-slate-300 mt-2">
+                  <strong>Movement:</strong> 3–4 active days per week mixing strength, walking, and light mobility or stretching.
+                </p>
+              `;
+          }
+          updateResult(resultHtml);
+        });
+      }
+
+      // ---------- Diet plan ----------
+      if (dietPlanBtn) {
+        dietPlanBtn.addEventListener('click', () => {
+          updateResult(loadingRow("Drafting a simple diet structure for your day..."));
+
+          const dietType = dietTypeInput?.value || 'balanced';
+          const mealsPerDay = parseInt(mealsPerDayInput?.value || '3');
+          const goal = goalInput?.value || 'maintain';
+
+          const tdeeMatch = planResult.textContent.match(/(\d+)\s*kcal\/day/);
+          let calories = tdeeMatch ? parseInt(tdeeMatch[1]) : 2000;
+          if (goal === 'lose-weight') calories = Math.max(1200, Math.round(calories - 400));
+          if (goal === 'build-muscle') calories = Math.round(calories + 300);
+
+          const weight = parseFloat(weightInput?.value || '70');
+          let protein = Math.round(1.6 * weight);
+          if (dietType === 'high-protein') protein = Math.round(protein * 1.2);
+
+          let carbsPct = 0.45, fatPct = 0.30, proteinPct = (protein*4)/calories;
+          if (goal === 'lose-weight') { carbsPct = 0.40; fatPct = 0.30; }
+          if (goal === 'build-muscle') { carbsPct = 0.50; fatPct = 0.25; }
+          const remainPct = Math.max(0, 1 - proteinPct);
+          const scale = (carbsPct + fatPct) > 0 ? remainPct / (carbsPct + fatPct) : 1;
+          carbsPct *= scale; fatPct *= scale;
+          const carbs = Math.round((calories * carbsPct) / 4);
+          const fat   = Math.round((calories * fatPct) / 9);
+
+          const banks = {
+            balanced: [
+              "Breakfast: Oats with milk, banana, peanuts",
+              "Lunch: Dal, rice, mixed veg sabzi, salad",
+              "Snack: Fruit + handful of nuts",
+              "Dinner: Roti, paneer or chicken, sabzi, salad"
+            ],
+            vegetarian: [
+              "Breakfast: Poha / upma + curd",
+              "Lunch: Rajma / chole with rice and salad",
+              "Snack: Sprout chaat + lemon",
+              "Dinner: Paneer bhurji, roti, cucumber salad"
+            ],
+            vegan: [
+              "Breakfast: Oats with almond/soy milk + seeds",
+              "Lunch: Chickpea or rajma curry with rice and salad",
+              "Snack: Roasted chana + fruit",
+              "Dinner: Tofu stir-fry with veggies and quinoa/rice"
+            ],
+            "high-protein": [
+              "Breakfast: Eggs or tofu scramble + roti/toast",
+              "Lunch: Grilled chicken / paneer + rice + salad",
+              "Snack: Yogurt / soy curd + nuts",
+              "Dinner: Dal + roti + extra paneer/tofu + veggies"
+            ]
+          };
+
+          const options = banks[dietType] || banks['balanced'];
+          const meals = [];
+          for (let i=0; i<mealsPerDay; i++) {
+            meals.push(options[i % options.length]);
+          }
+
+          const html = `
+            <h4 class="font-bold text-teal-700 dark:text-neon-teal">AI Diet Plan (~${calories} kcal/day)</h4>
+            <p class="text-slate-700 dark:text-slate-300 mt-2">
+              Goal: <strong>${labelGoal(goal)}</strong> • Preference: <strong>${titleCase(dietType)}</strong> • Meals/day: <strong>${mealsPerDay}</strong>
+            </p>
+            <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+              <div class="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 p-3"><strong>Protein:</strong> ~${protein} g</div>
+              <div class="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 p-3"><strong>Carbs:</strong> ~${carbs} g</div>
+              <div class="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 p-3"><strong>Fat:</strong> ~${fat} g</div>
+            </div>
+            <ol class="mt-4 list-decimal list-inside space-y-1 text-slate-700 dark:text-slate-300">
+              ${meals.map((m,i)=>`<li><strong>Meal ${i+1}:</strong> ${m}</li>`).join('')}
+            </ol>
+            <p class="mt-3 text-slate-600 dark:text-slate-400 text-sm">
+              This is a rough idea, not a strict diet chart. Adjust portion sizes and swap similar foods based on what's actually available in your kitchen.
+            </p>
+          `;
+          setTimeout(()=>updateResult(html), 200);
+        });
+      }
+
+      // ---------- Workout plan ----------
+      if (workoutPlanBtn) {
+        workoutPlanBtn.addEventListener('click', () => {
+          updateResult(loadingRow("Designing a simple weekly workout split..."));
+
+          const days = parseInt(daysPerWeekInput?.value || '3');
+          const equip = (equipmentInput?.value || 'home');
+          const goal = (goalInput?.value || 'maintain');
+
+          let daysHtml = "";
+          const ex = {
+            home: {
+              push: ["Push-ups","Incline Push-ups (table/wall)","Chair Dips"],
+              pull: ["Backpack Rows","Towel Rows on door","Reverse Snow Angels"],
+              legs: ["Bodyweight Squats","Reverse Lunges","Glute Bridges","Calf Raises on stair"],
+              core: ["Plank","Dead Bug","Side Plank"],
+              cond: ["Fast walking or jog intervals","Skipping or jumping jacks"]
+            },
+            gym: {
+              push: ["Bench Press","Incline DB Press","Overhead Press"],
+              pull: ["Lat Pulldown","Seated Cable Row","Face Pull"],
+              legs: ["Back Squat","Romanian Deadlift","Leg Press","Calf Raise"],
+              core: ["Cable Crunch","Hanging Knee Raise","Back Extension"],
+              cond: ["Treadmill incline walk","Rowing machine","Cycling intervals"]
+            }
+          }[equip];
+
+          const scheme = goal === 'build-muscle' ? "3–4 sets × 6–12 reps"
+                        : goal === 'lose-weight' ? "2–3 sets × 12–15 reps"
+                        : "3 sets × 8–12 reps";
+
+          const dayCard = (title, moves) => `
+            <div class="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 p-4">
+              <h5 class="font-bold">${title}</h5>
+              <ul class="mt-2 list-disc list-inside text-slate-700 dark:text-slate-300 text-sm">
+                ${moves.map(m => `<li>${m} — <span class="text-slate-500 dark:text-slate-400">${scheme}</span></li>`).join('')}
+              </ul>
+            </div>`;
+
+          if (days === 3) {
+            daysHtml += dayCard("Day 1 — Full Body A", [ex.push[0], ex.pull[0], ex.legs[0], ex.core[0]]);
+            daysHtml += dayCard("Day 2 — Full Body B", [ex.push[1] || ex.push[0], ex.pull[1] || ex.pull[0], ex.legs[1], ex.core[1]]);
+            daysHtml += dayCard("Day 3 — Conditioning + Core", [ex.cond[0], ex.cond[1] || ex.cond[0], ex.core[2]]);
+          } else if (days === 4) {
+            daysHtml += dayCard("Day 1 — Upper", [ex.push[0], ex.pull[0], ex.push[1] || ex.push[0], ex.pull[1] || ex.pull[0]]);
+            daysHtml += dayCard("Day 2 — Lower", [ex.legs[0], ex.legs[1], ex.legs[2] || ex.legs[0], ex.core[0]]);
+            daysHtml += dayCard("Day 3 — Upper", [ex.push[2] || ex.push[0], ex.pull[2] || ex.pull[0], ex.core[1]]);
+            daysHtml += dayCard("Day 4 — Lower + Cardio", [ex.legs[0], ex.legs[3] || ex.legs[1], ex.cond[0]]);
+          } else {
+            daysHtml += dayCard("Day 1 — Push", [ex.push[0], ex.push[1] || ex.push[0], ex.push[2] || ex.push[0]]);
+            daysHtml += dayCard("Day 2 — Pull", [ex.pull[0], ex.pull[1] || ex.pull[0], ex.pull[2] || ex.pull[0]]);
+            daysHtml += dayCard("Day 3 — Legs", [ex.legs[0], ex.legs[1], ex.legs[2] || ex.legs[0]]);
+            daysHtml += dayCard("Day 4 — Upper Accessory", [ex.push[1] || ex.push[0], ex.pull[1] || ex.pull[0], ex.core[0]]);
+            daysHtml += dayCard("Day 5 — Conditioning + Core", [ex.cond[0], ex.cond[1] || ex.cond[0], ex.core[1]]);
+          }
+
+          const html = `
+            <h4 class="font-bold text-blue-700 dark:text-neon-blue">AI Workout Plan</h4>
+            <p class="text-slate-700 dark:text-slate-300 mt-2">
+              Goal: <strong>${labelGoal(goal)}</strong> • Equipment: <strong>${titleCase(equip)}</strong> • Days/week: <strong>${days}</strong>
+            </p>
+            <div class="mt-4 grid grid-cols-1 gap-3">
+              ${daysHtml}
+            </div>
+            <p class="mt-3 text-slate-600 dark:text-slate-400 text-sm">
+              Progression idea: every 1–2 weeks, try adding 1–2 reps or a little weight while keeping good form.
+              Keep 1–2 reps in reserve on big exercises instead of going to complete failure.
+            </p>
+          `;
+          setTimeout(()=>updateResult(html), 200);
+        });
+      }
+    });
+  </script>
+</body>
+</html>
