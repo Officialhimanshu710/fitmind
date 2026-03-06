@@ -15,7 +15,7 @@
           fontFamily: { sans: ['Inter','ui-sans-serif','system-ui'] },
           colors: {
             neon: { teal:'#20F4C9', blue:'#3AA3FF', purple:'#A66BFF', pink:'#FF5FB7', orange: '#FF914D' },
-            slate: { 850: '#1e293b', 950: '#020617' } // Deep darks
+            slate: { 850: '#1e293b', 950: '#020617' }
           },
           boxShadow: {
             glow: '0 0 20px rgba(32,244,201,0.25)',
@@ -26,7 +26,8 @@
           },
           animation: {
             'blob': 'blob 10s infinite',
-            'fade-in': 'fadeIn 0.5s ease-out forwards'
+            'fade-in': 'fadeIn 0.5s ease-out forwards',
+            'slide-up': 'slideUp 0.4s ease-out forwards'
           },
           keyframes: {
             blob: {
@@ -38,6 +39,10 @@
             fadeIn: {
               '0%': { opacity: '0', transform: 'translateY(10px)' },
               '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+            slideUp: {
+              '0%': { opacity: '0', transform: 'translateY(20px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
             }
           }
         }
@@ -45,7 +50,7 @@
     }
   </script>
 
-  <!-- Theme & Fonts -->
+  <!-- Theme & Fonts & Icons & Charts -->
   <script>
     if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
       document.documentElement.classList.add('dark')
@@ -53,6 +58,7 @@
   </script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/lucide@0.294.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     body { font-family: 'Inter', sans-serif; transition: background-color 0.3s; }
@@ -69,8 +75,8 @@
     /* Glassmorphism */
     .glass { 
       background: rgba(255,255,255,0.7); 
-      backdrop-filter: blur(12px); 
-      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(16px); 
+      -webkit-backdrop-filter: blur(16px);
       border: 1px solid rgba(255,255,255,0.4); 
     }
     html.dark .glass { 
@@ -78,9 +84,7 @@
       border: 1px solid rgba(255,255,255,0.08); 
     }
     
-    .glass-card {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
+    .glass-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     .glass-card:hover {
       transform: translateY(-4px);
       border-color: rgba(32,244,201,0.3);
@@ -98,15 +102,19 @@
                   radial-gradient(circle at 85% 30%, rgba(166, 107, 255, 0.1), transparent 40%);
     }
 
-    /* Fix for Dark Mode Select Options Visibility */
     .glass option { background-color: #1e293b; color: #e2e8f0; }
     html:not(.dark) .glass option { background-color: #ffffff; color: #1e293b; }
 
     /* Custom Scrollbar */
-    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.3); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.3); border-radius: 10px; }
     ::-webkit-scrollbar-thumb:hover { background: rgba(100,116,139,0.5); }
+    
+    /* Circular Progress */
+    .circular-chart { display: block; margin: 0 auto; max-width: 80%; max-height: 250px; }
+    .circle-bg { fill: none; stroke: rgba(100, 116, 139, 0.2); stroke-width: 2.5; }
+    .circle { fill: none; stroke-width: 2.5; stroke-linecap: round; transition: stroke-dasharray 1s ease-out; }
   </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 antialiased overflow-x-hidden">
@@ -124,13 +132,13 @@
         <div class="h-10 w-10 bg-gradient-to-br from-neon-teal to-neon-blue rounded-xl flex items-center justify-center shadow-glow">
           <i data-lucide="activity" class="text-white h-6 w-6"></i>
         </div>
-        <a href="#home" class="text-2xl font-extrabold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-neon-teal to-neon-blue">FitMind+</a>
+        <a href="#home" class="text-2xl font-extrabold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-neon-teal to-neon-blue">FitMind+ <span class="text-sm font-bold text-slate-400 dark:text-slate-500 align-top">PRO</span></a>
       </div>
       <div class="hidden md:flex gap-8 font-semibold text-sm">
-        <a href="#features" class="hover:text-neon-teal transition">Solution</a>
+        <a href="#features" class="hover:text-neon-teal transition">Architecture</a>
         <a href="#demo" class="hover:text-neon-teal transition">Command Center</a>
       </div>
-      <button id="theme-toggle" class="p-2 rounded-xl glass hover:bg-slate-100 dark:hover:bg-white/5 transition">
+      <button id="theme-toggle" class="p-2 rounded-xl glass hover:bg-slate-100 dark:hover:bg-white/5 transition border border-transparent dark:border-white/10">
         <i data-lucide="sun" class="hidden dark:block h-5 w-5 text-neon-teal"></i>
         <i data-lucide="moon" class="block dark:hidden h-5 w-5 text-slate-700"></i>
       </button>
@@ -139,89 +147,38 @@
 
   <main>
     <!-- HERO SECTION -->
-    <section id="home" class="relative pt-20 pb-32 px-4 text-center max-w-7xl mx-auto">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full glass border-neon-blue/30 text-xs font-bold text-neon-blue mb-6 animate-fade-in">
+    <section id="home" class="relative pt-20 pb-24 px-4 text-center max-w-7xl mx-auto">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full glass border border-neon-blue/30 text-xs font-bold text-neon-blue mb-6 animate-fade-in shadow-glowBlue">
         <span class="relative flex h-2 w-2">
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-neon-blue opacity-75"></span>
           <span class="relative inline-flex rounded-full h-2 w-2 bg-neon-blue"></span>
         </span>
-        v2.0 Autonomous Engine Online
+        v3.0 Neural Wellness Engine Online
       </div>
       
       <h1 class="text-5xl md:text-7xl font-extrabold mb-6 tracking-tight leading-tight animate-fade-in" style="animation-delay: 0.1s">
         The Future of <br/>
-        <span class="bg-clip-text text-transparent bg-gradient-to-r from-neon-teal via-neon-blue to-neon-pink drop-shadow-sm">
+        <span class="bg-clip-text text-transparent bg-gradient-to-r from-neon-teal via-neon-blue to-neon-purple drop-shadow-sm">
           Bio-Adaptive Wellness
         </span>
       </h1>
       
-      <p class="text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto mb-10 animate-fade-in" style="animation-delay: 0.2s">
-        Unified physical and mental performance protocols. Deterministic logic for precision nutrition, hypertrophy planning, and injury prevention—processed entirely on-device.
+      <p class="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-10 animate-fade-in" style="animation-delay: 0.2s">
+        Unified physical and mental performance protocols. Deterministic logic for precision nutrition, hypertrophy planning, and predictive goal tracking—processed entirely on-device.
       </p>
       
       <div class="flex flex-col sm:flex-row justify-center gap-4 animate-fade-in" style="animation-delay: 0.3s">
-        <a href="#demo" class="px-8 py-4 bg-gradient-to-r from-neon-teal to-neon-blue rounded-2xl font-bold text-white shadow-glow hover:scale-105 transition flex items-center justify-center gap-2">
+        <a href="#demo" class="px-8 py-4 bg-gradient-to-r from-neon-teal to-neon-blue rounded-2xl font-bold text-slate-900 shadow-glow hover:scale-105 transition flex items-center justify-center gap-2">
           <i data-lucide="terminal" class="h-5 w-5"></i> Enter Command Center
         </a>
-        <a href="#features" class="px-8 py-4 glass rounded-2xl font-bold text-slate-700 dark:text-white hover:bg-white/50 dark:hover:bg-white/5 transition flex items-center justify-center gap-2">
-          <i data-lucide="info" class="h-5 w-5"></i> Learn How It Works
-        </a>
       </div>
     </section>
 
-    <!-- FEATURES / SOLUTION SECTION -->
-    <section id="features" class="py-20 px-4">
-      <div class="max-w-7xl mx-auto">
-        <div class="text-center mb-16">
-          <h2 class="text-xs font-bold tracking-widest text-neon-teal uppercase mb-2">The Solution</h2>
-          <h3 class="text-3xl md:text-4xl font-extrabold">Holistic Architecture</h3>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <!-- Feature 1 -->
-          <div class="glass glass-card p-8 rounded-3xl relative overflow-hidden group">
-            <div class="absolute top-0 right-0 w-32 h-32 bg-neon-teal/10 rounded-full blur-2xl -mr-16 -mt-16 transition group-hover:bg-neon-teal/20"></div>
-            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-neon-teal/20 to-neon-blue/20 flex items-center justify-center mb-6 text-neon-teal">
-              <i data-lucide="utensils" class="h-6 w-6"></i>
-            </div>
-            <h4 class="text-xl font-bold mb-3">Metabolic Precision</h4>
-            <p class="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-              Mifflin-St Jeor based calorie algorithms that adapt to your specific goal—whether it's an aggressive cut or a lean bulk. Includes visual macro breakdown.
-            </p>
-          </div>
-
-          <!-- Feature 2 -->
-          <div class="glass glass-card p-8 rounded-3xl relative overflow-hidden group">
-            <div class="absolute top-0 right-0 w-32 h-32 bg-neon-blue/10 rounded-full blur-2xl -mr-16 -mt-16 transition group-hover:bg-neon-blue/20"></div>
-            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-neon-blue/20 to-neon-purple/20 flex items-center justify-center mb-6 text-neon-blue">
-              <i data-lucide="dumbbell" class="h-6 w-6"></i>
-            </div>
-            <h4 class="text-xl font-bold mb-3">Hypertrophy Logic</h4>
-            <p class="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-              Generates 3 to 6-day split routines (PPL, Arnold, Upper/Lower) tailored to your equipment availability, ensuring optimal frequency and volume.
-            </p>
-          </div>
-
-          <!-- Feature 3 -->
-          <div class="glass glass-card p-8 rounded-3xl relative overflow-hidden group">
-            <div class="absolute top-0 right-0 w-32 h-32 bg-neon-orange/10 rounded-full blur-2xl -mr-16 -mt-16 transition group-hover:bg-neon-orange/20"></div>
-            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-neon-orange/20 to-neon-pink/20 flex items-center justify-center mb-6 text-neon-orange">
-              <i data-lucide="shield-check" class="h-6 w-6"></i>
-            </div>
-            <h4 class="text-xl font-bold mb-3">Safety Protocols</h4>
-            <p class="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-              Integrated Kinesiology database provides instant form correction checklists for compound movements to prevent injury before it happens.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- COMMAND CENTER (DEMO) -->
+    <!-- COMMAND CENTER -->
     <section id="demo" class="py-12 px-4 max-w-7xl mx-auto">
       <div class="flex items-center gap-4 mb-8">
         <div class="h-px flex-1 bg-gradient-to-r from-transparent via-slate-300 dark:via-white/20 to-transparent"></div>
-        <h2 class="text-2xl font-bold flex items-center gap-2">
+        <h2 class="text-2xl font-bold flex items-center gap-2 tracking-tight">
           <i data-lucide="cpu" class="text-neon-teal"></i> Command Center
         </h2>
         <div class="h-px flex-1 bg-gradient-to-r from-transparent via-slate-300 dark:via-white/20 to-transparent"></div>
@@ -229,228 +186,248 @@
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-20">
         
-        <!-- INPUT CONSOLE -->
-        <div class="lg:col-span-5 space-y-4">
-          <div class="glass p-6 rounded-3xl shadow-xl h-full overflow-y-auto max-h-[85vh] border-t-4 border-t-neon-teal">
+        <!-- LEFT: INPUT CONSOLE -->
+        <div class="lg:col-span-4 space-y-4">
+          <div class="glass p-6 rounded-3xl shadow-xl h-full border-t-4 border-t-neon-teal relative overflow-hidden">
             <h3 class="text-lg font-bold mb-4 flex items-center gap-2 text-slate-800 dark:text-white">
-              <i data-lucide="sliders" class="h-5 w-5 text-neon-teal"></i> Input Parameters
+              <i data-lucide="sliders" class="h-5 w-5 text-neon-teal"></i> Biometrics & Settings
             </h3>
             
-            <!-- 1. Mood -->
-            <div class="mb-6 bg-slate-50/50 dark:bg-white/5 p-4 rounded-2xl">
-              <label class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 block">Mental Check-in</label>
-              <div class="flex gap-2">
-                <input id="moodInput" type="text" class="w-full rounded-xl bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 p-3 text-sm focus:ring-1 focus:ring-neon-teal outline-none transition" placeholder="e.g. 'Feeling stressed about exams'">
-                <button id="analyzeMoodBtn" class="px-4 rounded-xl bg-neon-teal/10 border border-neon-teal/30 text-neon-teal hover:bg-neon-teal/20 transition">
-                  <i data-lucide="sparkles" class="h-4 w-4"></i>
-                </button>
-              </div>
-            </div>
-
-            <!-- 2. Body Stats -->
-            <div class="grid grid-cols-2 gap-3 mb-4">
-              <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Age</label>
-                <input id="ageInput" type="number" placeholder="20" class="w-full rounded-xl glass p-2.5 text-sm outline-none focus:ring-1 focus:ring-neon-blue transition"/>
-              </div>
-              <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Gender</label>
-                <select id="genderInput" class="w-full rounded-xl glass p-2.5 text-sm outline-none focus:ring-1 focus:ring-neon-blue transition">
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                </select>
-              </div>
-              <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Weight (kg)</label>
-                <input id="weightInput" type="number" value="70" class="w-full rounded-xl glass p-2.5 text-sm outline-none focus:ring-1 focus:ring-neon-blue transition"/>
-              </div>
-              <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Height (cm)</label>
-                <input id="heightInput" type="number" value="175" class="w-full rounded-xl glass p-2.5 text-sm outline-none focus:ring-1 focus:ring-neon-blue transition"/>
-              </div>
-            </div>
-
-            <!-- 3. Goal & Activity -->
-            <div class="space-y-3 mb-6">
-              <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Activity Level</label>
-                <select id="activityInput" class="w-full rounded-xl glass p-2.5 text-sm outline-none focus:ring-1 focus:ring-neon-blue transition">
-                  <option value="1.2">Sedentary (Office job, no exercise)</option>
-                  <option value="1.375">Lightly Active (1-3 days/wk)</option>
-                  <option value="1.55">Moderately Active (3-5 days/wk)</option>
-                  <option value="1.725">Very Active (6-7 days/wk)</option>
-                  <option value="1.9">Extra Active (Physical job)</option>
-                </select>
-              </div>
-              <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Primary Goal</label>
-                <select id="goalInput" class="w-full rounded-xl glass p-2.5 text-sm outline-none focus:ring-1 focus:ring-neon-blue transition">
-                  <option value="lose-weight">Lose Weight (Calorie Deficit)</option>
-                  <option value="build-muscle">Build Muscle (Hypertrophy)</option>
-                  <option value="maintain">Maintain & Wellness</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- 4. Plan Specifics -->
-            <div class="grid grid-cols-2 gap-3 mb-6">
-              <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Diet Type</label>
-                <select id="dietTypeInput" class="w-full rounded-xl glass p-2.5 text-sm outline-none focus:ring-1 focus:ring-neon-teal transition">
-                  <option value="balanced">Balanced</option>
-                  <option value="vegetarian">Vegetarian</option>
-                  <option value="vegan">Vegan</option>
-                  <option value="high-protein">High Protein</option>
-                </select>
-              </div>
-              <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Meals / Day</label>
-                <select id="mealsPerDayInput" class="w-full rounded-xl glass p-2.5 text-sm outline-none focus:ring-1 focus:ring-neon-teal transition">
-                  <option value="3">3 Meals</option>
-                  <option value="4">4 Meals</option>
-                  <option value="5">5 Meals</option>
-                </select>
-              </div>
-              <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Equipment</label>
-                <select id="equipmentInput" class="w-full rounded-xl glass p-2.5 text-sm outline-none focus:ring-1 focus:ring-neon-blue transition">
-                  <option value="home">Home (Minimal)</option>
-                  <option value="gym">Gym (Full)</option>
-                </select>
-              </div>
-              <div>
-                <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Frequency</label>
-                <select id="daysPerWeekInput" class="w-full rounded-xl glass p-2.5 text-sm outline-none focus:ring-1 focus:ring-neon-blue transition">
-                  <option value="3">3 Days/Week</option>
-                  <option value="4">4 Days/Week</option>
-                  <option value="5">5 Days/Week</option>
-                  <option value="6">6 Days/Week</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- 5. Extended Safety Checklist -->
-            <div class="mb-8">
-              <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block flex items-center justify-between">
-                <span>Safety & Form Checklist</span>
-                <span class="text-[9px] bg-slate-200 dark:bg-white/10 px-2 py-0.5 rounded text-slate-500">Select Multiple</span>
-              </label>
-              <div class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1" id="exerciseSelector">
-                <!-- Checkboxes -->
-                <label class="group relative cursor-pointer">
-                  <input type="checkbox" value="squat" class="peer sr-only">
-                  <div class="p-3 glass rounded-xl border border-transparent peer-checked:border-neon-orange peer-checked:bg-neon-orange/10 peer-checked:shadow-glowOrange transition-all flex items-center justify-between">
-                    <span class="text-xs font-semibold group-hover:text-neon-orange transition">Squats</span>
-                    <div class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 peer-checked:bg-neon-orange transition-colors"></div>
-                  </div>
-                </label>
-                <label class="group relative cursor-pointer">
-                  <input type="checkbox" value="deadlift" class="peer sr-only">
-                  <div class="p-3 glass rounded-xl border border-transparent peer-checked:border-neon-orange peer-checked:bg-neon-orange/10 peer-checked:shadow-glowOrange transition-all flex items-center justify-between">
-                    <span class="text-xs font-semibold group-hover:text-neon-orange transition">Deadlifts</span>
-                    <div class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 peer-checked:bg-neon-orange transition-colors"></div>
-                  </div>
-                </label>
-                <label class="group relative cursor-pointer">
-                  <input type="checkbox" value="bench" class="peer sr-only">
-                  <div class="p-3 glass rounded-xl border border-transparent peer-checked:border-neon-orange peer-checked:bg-neon-orange/10 peer-checked:shadow-glowOrange transition-all flex items-center justify-between">
-                    <span class="text-xs font-semibold group-hover:text-neon-orange transition">Bench Press</span>
-                    <div class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 peer-checked:bg-neon-orange transition-colors"></div>
-                  </div>
-                </label>
-                <label class="group relative cursor-pointer">
-                  <input type="checkbox" value="overhead" class="peer sr-only">
-                  <div class="p-3 glass rounded-xl border border-transparent peer-checked:border-neon-orange peer-checked:bg-neon-orange/10 peer-checked:shadow-glowOrange transition-all flex items-center justify-between">
-                    <span class="text-xs font-semibold group-hover:text-neon-orange transition">Overhead Press</span>
-                    <div class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 peer-checked:bg-neon-orange transition-colors"></div>
-                  </div>
-                </label>
-                <label class="group relative cursor-pointer">
-                  <input type="checkbox" value="lunges" class="peer sr-only">
-                  <div class="p-3 glass rounded-xl border border-transparent peer-checked:border-neon-orange peer-checked:bg-neon-orange/10 peer-checked:shadow-glowOrange transition-all flex items-center justify-between">
-                    <span class="text-xs font-semibold group-hover:text-neon-orange transition">Lunges</span>
-                    <div class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 peer-checked:bg-neon-orange transition-colors"></div>
-                  </div>
-                </label>
-                <label class="group relative cursor-pointer">
-                  <input type="checkbox" value="plank" class="peer sr-only">
-                  <div class="p-3 glass rounded-xl border border-transparent peer-checked:border-neon-orange peer-checked:bg-neon-orange/10 peer-checked:shadow-glowOrange transition-all flex items-center justify-between">
-                    <span class="text-xs font-semibold group-hover:text-neon-orange transition">Plank</span>
-                    <div class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 peer-checked:bg-neon-orange transition-colors"></div>
-                  </div>
-                </label>
-                <label class="group relative cursor-pointer">
-                  <input type="checkbox" value="pushup" class="peer sr-only">
-                  <div class="p-3 glass rounded-xl border border-transparent peer-checked:border-neon-orange peer-checked:bg-neon-orange/10 peer-checked:shadow-glowOrange transition-all flex items-center justify-between">
-                    <span class="text-xs font-semibold group-hover:text-neon-orange transition">Push-ups</span>
-                    <div class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 peer-checked:bg-neon-orange transition-colors"></div>
-                  </div>
-                </label>
-                <label class="group relative cursor-pointer">
-                  <input type="checkbox" value="row" class="peer sr-only">
-                  <div class="p-3 glass rounded-xl border border-transparent peer-checked:border-neon-orange peer-checked:bg-neon-orange/10 peer-checked:shadow-glowOrange transition-all flex items-center justify-between">
-                    <span class="text-xs font-semibold group-hover:text-neon-orange transition">Rows</span>
-                    <div class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 peer-checked:bg-neon-orange transition-colors"></div>
-                  </div>
-                </label>
-              </div>
-            </div>
-
-            <!-- Actions -->
-            <div class="grid grid-cols-2 gap-3">
-              <button id="dietPlanBtn" class="py-3.5 rounded-2xl bg-gradient-to-r from-neon-teal to-neon-blue text-slate-900 font-bold shadow-glow hover:scale-105 transition text-xs md:text-sm">
-                Generate Diet
-              </button>
-              <button id="workoutPlanBtn" class="py-3.5 rounded-2xl bg-gradient-to-r from-neon-blue to-neon-purple text-white font-bold shadow-glowBlue hover:scale-105 transition text-xs md:text-sm">
-                Generate Workout
-              </button>
-              <button id="safetyOnlyBtn" class="col-span-2 py-3 rounded-2xl bg-slate-800 dark:bg-white/10 border border-neon-orange/40 text-neon-orange font-bold hover:bg-neon-orange/10 transition text-xs md:text-sm flex items-center justify-center gap-2">
-                <i data-lucide="shield-check" class="h-4 w-4"></i> Generate Safety Report Only
-              </button>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- OUTPUT DASHBOARD -->
-        <div class="lg:col-span-7">
-          <div id="outputContainer" class="glass p-8 rounded-3xl shadow-xl min-h-[700px] transition-all duration-500 relative overflow-hidden flex flex-col border-t-4 border-t-neon-blue">
-            <div class="absolute inset-0 bg-gradient-to-br from-neon-teal/5 to-neon-blue/5 pointer-events-none"></div>
-            
-            <div id="defaultMsg" class="h-full flex flex-col items-center justify-center text-center py-20 my-auto">
-              <div class="relative mb-6">
-                <div class="absolute inset-0 bg-neon-blue/30 blur-xl rounded-full animate-pulse"></div>
-                <div class="h-24 w-24 rounded-full glass flex items-center justify-center relative z-10 border border-white/20">
-                  <i data-lucide="cpu" class="h-10 w-10 text-slate-400"></i>
+            <form id="profileForm" class="space-y-5">
+              <!-- 1. Body Stats -->
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Age</label>
+                  <input id="ageInput" type="number" required placeholder="22" class="w-full rounded-xl glass p-2.5 text-sm outline-none focus:ring-1 focus:ring-neon-blue transition"/>
+                </div>
+                <div>
+                  <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Gender</label>
+                  <select id="genderInput" class="w-full rounded-xl glass p-2.5 text-sm outline-none focus:ring-1 focus:ring-neon-blue transition">
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Current Wt (kg)</label>
+                  <input id="weightInput" type="number" step="0.1" required class="w-full rounded-xl glass p-2.5 text-sm outline-none focus:ring-1 focus:ring-neon-blue transition"/>
+                </div>
+                <div>
+                  <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Height (cm)</label>
+                  <input id="heightInput" type="number" required class="w-full rounded-xl glass p-2.5 text-sm outline-none focus:ring-1 focus:ring-neon-blue transition"/>
+                </div>
+                <div class="col-span-2">
+                  <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Target Weight (kg) <span class="text-neon-purple lowercase tracking-normal">- For Prediction</span></label>
+                  <input id="targetWeightInput" type="number" step="0.1" required class="w-full rounded-xl glass p-2.5 text-sm outline-none focus:ring-1 focus:ring-neon-purple transition border-neon-purple/30"/>
                 </div>
               </div>
-              <h4 class="text-xl font-bold text-slate-400">System Standby</h4>
-              <p class="text-slate-500 max-w-xs mx-auto text-sm mt-3 leading-relaxed">
-                Awaiting parameters. Select inputs on the left console and initiate generation protocols.
-              </p>
-            </div>
 
-            <div id="results" class="hidden space-y-6 relative z-10 w-full pb-8">
-              <!-- Dynamic Content -->
-            </div>
+              <!-- 2. Goal & Activity -->
+              <div class="space-y-3 border-t border-slate-200 dark:border-white/10 pt-4">
+                <div>
+                  <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Primary Goal</label>
+                  <select id="goalInput" class="w-full rounded-xl glass p-2.5 text-sm outline-none focus:ring-1 focus:ring-neon-blue transition">
+                    <option value="lose-weight">Lose Weight (Deficit)</option>
+                    <option value="build-muscle">Build Muscle (Surplus)</option>
+                    <option value="maintain">Maintain Fitness</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Activity Level</label>
+                  <select id="activityInput" class="w-full rounded-xl glass p-2.5 text-sm outline-none focus:ring-1 focus:ring-neon-blue transition">
+                    <option value="1.2">Sedentary (Office/None)</option>
+                    <option value="1.375">Light (1-3 days/wk)</option>
+                    <option value="1.55">Moderate (3-5 days/wk)</option>
+                    <option value="1.725">Active (6-7 days/wk)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- 3. Preferences -->
+              <div class="grid grid-cols-2 gap-3 border-t border-slate-200 dark:border-white/10 pt-4">
+                <div>
+                  <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Diet Type</label>
+                  <select id="dietTypeInput" class="w-full rounded-xl glass p-2.5 text-sm outline-none focus:ring-1 focus:ring-neon-teal transition">
+                    <option value="balanced">Balanced</option>
+                    <option value="vegetarian">Vegetarian</option>
+                    <option value="vegan">Vegan</option>
+                    <option value="high-protein">High Protein</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Equip (Gym)</label>
+                  <select id="equipmentInput" class="w-full rounded-xl glass p-2.5 text-sm outline-none focus:ring-1 focus:ring-neon-blue transition">
+                    <option value="gym">Full Gym</option>
+                    <option value="home">Home/Dumbbells</option>
+                  </select>
+                </div>
+                <div class="col-span-2">
+                  <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Training Days/Week</label>
+                  <select id="daysPerWeekInput" class="w-full rounded-xl glass p-2.5 text-sm outline-none focus:ring-1 focus:ring-neon-blue transition">
+                    <option value="3">3 Days (Full Body)</option>
+                    <option value="4">4 Days (Upper/Lower)</option>
+                    <option value="5">5 Days (Hypertrophy)</option>
+                    <option value="6">6 Days (Arnold Split)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- 4. Quick Mood -->
+              <div class="border-t border-slate-200 dark:border-white/10 pt-4">
+                <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Current Mood / Stress</label>
+                <div class="flex gap-2 mt-1">
+                  <button type="button" class="mood-btn flex-1 py-2 glass rounded-xl text-xl hover:bg-neon-teal/20 focus:ring-2 ring-neon-teal transition" data-mood="great">🔥</button>
+                  <button type="button" class="mood-btn flex-1 py-2 glass rounded-xl text-xl hover:bg-neon-blue/20 focus:ring-2 ring-neon-blue transition" data-mood="good">🙂</button>
+                  <button type="button" class="mood-btn flex-1 py-2 glass rounded-xl text-xl hover:bg-neon-orange/20 focus:ring-2 ring-neon-orange transition" data-mood="stressed">😫</button>
+                </div>
+                <input type="hidden" id="moodInput" value="good">
+              </div>
+
+              <!-- Save / Generate Buttons -->
+              <div class="pt-2 flex flex-col gap-2">
+                <button type="submit" class="w-full py-3 rounded-xl bg-slate-800 dark:bg-white text-white dark:text-black font-bold text-sm shadow-md hover:scale-[1.02] transition flex justify-center items-center gap-2">
+                  <i data-lucide="save" class="h-4 w-4"></i> Save Profile & Update Dash
+                </button>
+                <div class="grid grid-cols-2 gap-2 mt-2">
+                  <button type="button" id="dietPlanBtn" class="py-2.5 rounded-xl bg-neon-teal/10 border border-neon-teal/30 text-neon-teal font-bold hover:bg-neon-teal/20 transition text-xs flex justify-center items-center gap-1">
+                    <i data-lucide="utensils" class="h-3 w-3"></i> Generate Diet
+                  </button>
+                  <button type="button" id="workoutPlanBtn" class="py-2.5 rounded-xl bg-neon-blue/10 border border-neon-blue/30 text-neon-blue font-bold hover:bg-neon-blue/20 transition text-xs flex justify-center items-center gap-1">
+                    <i data-lucide="dumbbell" class="h-3 w-3"></i> Generate Workout
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
 
+        <!-- RIGHT: OUTPUT DASHBOARD & TABS -->
+        <div class="lg:col-span-8 flex flex-col">
+          <!-- Navigation Tabs -->
+          <div class="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
+            <button class="tab-btn active px-5 py-2.5 rounded-full glass font-bold text-sm flex items-center gap-2 transition-all bg-neon-blue text-white shadow-glowBlue border-transparent" data-target="tab-dashboard">
+              <i data-lucide="layout-dashboard" class="h-4 w-4"></i> Dashboard
+            </button>
+            <button class="tab-btn px-5 py-2.5 rounded-full glass font-bold text-sm text-slate-500 hover:text-slate-800 dark:hover:text-white transition-all border-transparent" data-target="tab-diet">
+              <i data-lucide="apple" class="h-4 w-4"></i> Diet Engine
+            </button>
+            <button class="tab-btn px-5 py-2.5 rounded-full glass font-bold text-sm text-slate-500 hover:text-slate-800 dark:hover:text-white transition-all border-transparent" data-target="tab-training">
+              <i data-lucide="activity-square" class="h-4 w-4"></i> Training Engine
+            </button>
+          </div>
+
+          <!-- Content Area -->
+          <div class="glass p-6 md:p-8 rounded-3xl shadow-xl flex-1 relative overflow-hidden border-t-4 border-t-neon-blue min-h-[600px]">
+            <div class="absolute inset-0 bg-gradient-to-br from-neon-teal/5 to-neon-blue/5 pointer-events-none"></div>
+            
+            <!-- TAB 1: DASHBOARD -->
+            <div id="tab-dashboard" class="tab-content block animate-slide-up h-full">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
+                
+                <!-- Health Score & Prediction -->
+                <div class="space-y-6">
+                  <!-- Health Score -->
+                  <div class="glass p-5 rounded-2xl flex items-center justify-between border border-white/20 relative overflow-hidden group">
+                    <div class="absolute -right-10 -top-10 w-32 h-32 bg-neon-teal/10 rounded-full blur-2xl group-hover:bg-neon-teal/20 transition"></div>
+                    <div>
+                      <h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">AI Health Score</h4>
+                      <div class="text-4xl font-extrabold text-slate-800 dark:text-white" id="healthScoreText">--</div>
+                      <p class="text-[10px] text-slate-400 mt-1" id="healthScoreDesc">Update profile to calculate.</p>
+                    </div>
+                    <div class="relative w-24 h-24">
+                      <svg viewBox="0 0 36 36" class="circular-chart text-neon-teal">
+                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                        <path class="circle" id="healthScorePath" stroke-dasharray="0, 100" stroke="currentColor" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <!-- Goal Prediction -->
+                  <div class="glass p-5 rounded-2xl border border-white/20 border-l-4 border-l-neon-purple">
+                    <h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <i data-lucide="target" class="h-4 w-4 text-neon-purple"></i> Predictive Engine
+                    </h4>
+                    <div id="predictionOutput">
+                      <p class="text-sm text-slate-400 italic">Enter current and target weight to view AI prediction timeline.</p>
+                    </div>
+                  </div>
+
+                  <!-- Hydration Tracker -->
+                  <div class="glass p-5 rounded-2xl border border-white/20">
+                    <div class="flex justify-between items-center mb-4">
+                      <h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="droplet" class="h-4 w-4 text-neon-blue"></i> Hydration
+                      </h4>
+                      <span class="text-xs font-bold text-neon-blue bg-neon-blue/10 px-2 py-1 rounded-lg" id="waterCounterText">0 / 3000 ml</span>
+                    </div>
+                    <div class="h-4 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner mb-4">
+                      <div id="waterProgressBar" class="h-full bg-gradient-to-r from-cyan-400 to-neon-blue transition-all duration-500 relative" style="width: 0%">
+                        <div class="absolute inset-0 bg-white/20 animate-pulse"></div>
+                      </div>
+                    </div>
+                    <div class="flex gap-2">
+                      <button id="addWaterBtn" class="flex-1 py-2 rounded-xl bg-neon-blue/10 text-neon-blue font-bold text-sm hover:bg-neon-blue/20 transition flex justify-center items-center gap-1">
+                        <i data-lucide="plus" class="h-4 w-4"></i> 250ml
+                      </button>
+                      <button id="subWaterBtn" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition">
+                        <i data-lucide="minus" class="h-4 w-4"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Weight Chart -->
+                <div class="glass p-5 rounded-2xl border border-white/20 flex flex-col h-full">
+                  <h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <i data-lucide="trending-up" class="h-4 w-4 text-neon-teal"></i> Weight Progression
+                  </h4>
+                  <div class="flex-1 relative w-full h-[250px]">
+                    <canvas id="weightChart"></canvas>
+                  </div>
+                  <div class="mt-4 flex gap-2">
+                    <input type="date" id="logDate" class="rounded-xl glass px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-neon-teal flex-1"/>
+                    <input type="number" step="0.1" id="logWeight" placeholder="Wt (kg)" class="rounded-xl glass px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-neon-teal w-20"/>
+                    <button id="addWeightLogBtn" class="bg-neon-teal text-slate-900 px-3 py-2 rounded-xl font-bold text-xs hover:shadow-glow transition">Log</button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- TAB 2: DIET ENGINE -->
+            <div id="tab-diet" class="tab-content hidden animate-slide-up h-full overflow-y-auto pr-2">
+              <div id="dietOutput" class="flex flex-col items-center justify-center h-full text-center py-10 opacity-50">
+                <i data-lucide="apple" class="h-16 w-16 mb-4 text-slate-400"></i>
+                <h4 class="text-xl font-bold">Nutrition Engine Standby</h4>
+                <p class="text-sm mt-2">Adjust parameters and click "Generate Diet".</p>
+              </div>
+            </div>
+
+            <!-- TAB 3: TRAINING ENGINE -->
+            <div id="tab-training" class="tab-content hidden animate-slide-up h-full overflow-y-auto pr-2">
+              <div id="workoutOutput" class="flex flex-col items-center justify-center h-full text-center py-10 opacity-50">
+                <i data-lucide="dumbbell" class="h-16 w-16 mb-4 text-slate-400"></i>
+                <h4 class="text-xl font-bold">Hypertrophy Engine Standby</h4>
+                <p class="text-sm mt-2">Adjust parameters and click "Generate Workout".</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
       </div>
     </section>
   </main>
 
   <!-- FOOTER -->
-  <footer class="relative mt-20 border-t border-slate-200 dark:border-white/10 bg-white/50 dark:bg-black/20 backdrop-blur-md">
-    <div class="max-w-7xl mx-auto px-4 py-12 flex flex-col md:flex-row items-center justify-between gap-6">
+  <footer class="relative mt-10 border-t border-slate-200 dark:border-white/10 bg-white/50 dark:bg-black/20 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
       <div class="flex items-center gap-2">
-        <div class="h-8 w-8 bg-gradient-to-br from-neon-teal to-neon-blue rounded-lg flex items-center justify-center">
-          <i data-lucide="activity" class="text-white h-4 w-4"></i>
+        <div class="h-6 w-6 bg-gradient-to-br from-neon-teal to-neon-blue rounded md flex items-center justify-center">
+          <i data-lucide="activity" class="text-white h-3 w-3"></i>
         </div>
-        <span class="font-bold text-lg">FitMind+ Pro</span>
+        <span class="font-bold text-sm">FitMind+ Pro (2026 Capstone Edition)</span>
       </div>
-      <div class="text-sm text-slate-500 dark:text-slate-400">
-        &copy; 2026 FitMind+. All rights reserved. <span class="mx-2">|</span> Autonomous Wellness Engine
+      <div class="text-xs text-slate-500 dark:text-slate-400">
+        &copy; 2026. Processed Locally via JS Engine.
       </div>
     </div>
   </footer>
@@ -460,177 +437,393 @@
     document.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
 
-      // Theme Logic
+      // --- 1. THEME TOGGLE ---
       const themeToggle = document.getElementById('theme-toggle');
       themeToggle.addEventListener('click', () => {
         const isDark = document.documentElement.classList.toggle('dark');
         localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        if(weightChartInstance) updateChartTheme();
       });
 
-      // --- 1. DATA BANKS ---
+      // --- 2. STATE MANAGEMENT (Local Storage) ---
+      let appState = JSON.parse(localStorage.getItem('fitmind_state_v3')) || {
+        profile: { age: 22, gender: 'male', weight: 75, height: 175, targetWeight: 70, goal: 'lose-weight', activity: 1.55, dietType: 'balanced', equipment: 'gym', daysPerWeek: 4, mood: 'good' },
+        weightHistory: [ { date: new Date(Date.now() - 7*24*60*60*1000).toISOString().split('T')[0], weight: 76.5 } ],
+        hydration: { date: new Date().toISOString().split('T')[0], amount: 0 }
+      };
+
+      // Set today's date for inputs
+      document.getElementById('logDate').value = new Date().toISOString().split('T')[0];
+
+      // Check if hydration is from a previous day, if so, reset it.
+      const todayString = new Date().toISOString().split('T')[0];
+      if(appState.hydration.date !== todayString) {
+        appState.hydration = { date: todayString, amount: 0 };
+        saveState();
+      }
+
+      function saveState() {
+        localStorage.setItem('fitmind_state_v3', JSON.stringify(appState));
+        updateDashboard();
+      }
+
+      // --- 3. UI INITIALIZATION ---
+      function populateForm() {
+        const p = appState.profile;
+        document.getElementById('ageInput').value = p.age || '';
+        document.getElementById('genderInput').value = p.gender || 'male';
+        document.getElementById('weightInput').value = p.weight || '';
+        document.getElementById('heightInput').value = p.height || '';
+        document.getElementById('targetWeightInput').value = p.targetWeight || '';
+        document.getElementById('goalInput').value = p.goal || 'lose-weight';
+        document.getElementById('activityInput').value = p.activity || 1.2;
+        document.getElementById('dietTypeInput').value = p.dietType || 'balanced';
+        document.getElementById('equipmentInput').value = p.equipment || 'gym';
+        document.getElementById('daysPerWeekInput').value = p.daysPerWeek || 3;
+        
+        // Mood buttons
+        document.querySelectorAll('.mood-btn').forEach(btn => {
+          if(btn.dataset.mood === p.mood) {
+            btn.classList.add('ring-2', 'ring-offset-2', 'dark:ring-offset-slate-900');
+          } else {
+            btn.classList.remove('ring-2', 'ring-offset-2', 'dark:ring-offset-slate-900');
+          }
+        });
+        document.getElementById('moodInput').value = p.mood || 'good';
+      }
+
+      // Mood Selection Logic
+      document.querySelectorAll('.mood-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('ring-2', 'ring-offset-2', 'dark:ring-offset-slate-900'));
+          e.currentTarget.classList.add('ring-2', 'ring-offset-2', 'dark:ring-offset-slate-900');
+          document.getElementById('moodInput').value = e.currentTarget.dataset.mood;
+        });
+      });
+
+      // Save Profile Form
+      document.getElementById('profileForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        appState.profile = {
+          age: parseFloat(document.getElementById('ageInput').value),
+          gender: document.getElementById('genderInput').value,
+          weight: parseFloat(document.getElementById('weightInput').value),
+          height: parseFloat(document.getElementById('heightInput').value),
+          targetWeight: parseFloat(document.getElementById('targetWeightInput').value),
+          goal: document.getElementById('goalInput').value,
+          activity: parseFloat(document.getElementById('activityInput').value),
+          dietType: document.getElementById('dietTypeInput').value,
+          equipment: document.getElementById('equipmentInput').value,
+          daysPerWeek: parseInt(document.getElementById('daysPerWeekInput').value),
+          mood: document.getElementById('moodInput').value
+        };
+        
+        // Ensure today's weight is in history
+        const today = new Date().toISOString().split('T')[0];
+        const existingLogIndex = appState.weightHistory.findIndex(log => log.date === today);
+        if(existingLogIndex >= 0) {
+          appState.weightHistory[existingLogIndex].weight = appState.profile.weight;
+        } else {
+          appState.weightHistory.push({ date: today, weight: appState.profile.weight });
+          appState.weightHistory.sort((a,b) => new Date(a.date) - new Date(b.date));
+        }
+
+        saveState();
+        switchTab('tab-dashboard');
+        
+        // Quick visual feedback
+        const btn = e.target.querySelector('button[type="submit"]');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = `<i data-lucide="check-circle" class="h-4 w-4"></i> Saved!`;
+        lucide.createIcons();
+        setTimeout(() => { btn.innerHTML = originalText; lucide.createIcons(); }, 2000);
+      });
+
+      // --- 4. DASHBOARD LOGIC (Chart, Score, Hydration, Prediction) ---
       
-      const safetyDB = {
-        'squat': 'Protocol: Initiate by hinging hips back. Maintain lumbar neutrality. Knees must track inline with toes (prevent valgus collapse). Drive upward through the mid-foot/heel complex.',
-        'deadlift': 'Protocol: Barbell must maintain contact with shins. Scapular depression required (engage lats). Hinge pattern dominancy—do not squat the weight. Spine rigidity is critical.',
-        'bench': 'Protocol: Maintain 5-point contact (Head, Shoulders, Glutes, Feet). Retract scapula (pinch shoulder blades). Elbow path at 45° relative to torso to preserve rotator cuff health.',
-        'overhead': 'Protocol: Glute and core bracing essential to prevent lumbar hyperextension. Bar path should clear face and lock out directly over the glenohumeral joint (shoulder).',
-        'lunges': 'Protocol: Torso upright with posterior chain engagement. Front knee should not translate excessively past toes. Rear knee kisses the floor gently. Maintain pelvic stability.',
-        'plank': 'Protocol: Create high intra-abdominal pressure. Gluteal contraction required to prevent anterior pelvic tilt (hip sagging). Cervical spine neutral (look at floor).',
-        'pushup': 'Protocol: Elbows tucked at 45° to torso. Scapular protraction at the top (push floor away). Core rigid to prevent spinal flexion or extension.',
-        'row': 'Protocol: Thoracic extension (chest up). Pull towards the iliac crest (hip bone) to maximize latissimus engagement. Avoid momentum or excessive body English.'
-      };
+      let weightChartInstance = null;
 
-      const mealBanks = {
-        balanced: [
-          "Oats with milk, banana, & almonds",
-          "Grilled Chicken/Paneer with Rice & Mixed Veggies",
-          "Whole wheat toast with peanut butter & fruit",
-          "Roti with Dal, Sabzi, & Cucumber Salad",
-          "Greek Yogurt with berries",
-          "Scrambled Eggs/Tofu Bhurji with Toast"
-        ],
-        vegetarian: [
-          "Poha or Upma with added peas/peanuts",
-          "Rajma (Kidney Beans) Curry with Rice",
-          "Paneer Tikka with Green Salad",
-          "Lentil Soup (Dal) with Roti",
-          "Sprouted Moong Chaat",
-          "Chickpea Salad with lemon dressing"
-        ],
-        vegan: [
-          "Oatmeal made with soy/almond milk",
-          "Tofu Stir-fry with Broccoli & Quinoa",
-          "Chickpea Curry (Chana Masala) with Rice",
-          "Avocado Toast with seeds",
-          "Lentil Pasta with marinara sauce",
-          "Soy chunks curry with veggies"
-        ],
-        "high-protein": [
-          "3 Eggs (boiled or omelet) + Spinach",
-          "Grilled Chicken Breast + Sweet Potato",
-          "Protein Shake (Whey/Plant) + Nuts",
-          "Soya Chunks + Peas Curry",
-          "Tuna Salad or Grilled Fish",
-          "Low-fat Paneer + Roti"
-        ]
-      };
+      function updateDashboard() {
+        updateChart();
+        updateHydrationUI();
+        calculateHealthScore();
+        calculateGoalPrediction();
+      }
 
-      // --- 2. HELPER FUNCTIONS ---
-      function showOutput(html) {
-        document.getElementById('defaultMsg').classList.add('hidden');
-        const r = document.getElementById('results');
-        r.classList.remove('hidden');
-        r.innerHTML = html;
-        r.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Chart.js Setup
+      function updateChart() {
+        const ctx = document.getElementById('weightChart').getContext('2d');
+        const labels = appState.weightHistory.map(log => log.date.slice(5)); // Show MM-DD
+        const data = appState.weightHistory.map(log => log.weight);
+        const isDark = document.documentElement.classList.contains('dark');
+        const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+        const textColor = isDark ? '#94a3b8' : '#64748b';
+
+        if (weightChartInstance) {
+          weightChartInstance.data.labels = labels;
+          weightChartInstance.data.datasets[0].data = data;
+          weightChartInstance.options.scales.x.grid.color = gridColor;
+          weightChartInstance.options.scales.y.grid.color = gridColor;
+          weightChartInstance.options.scales.x.ticks.color = textColor;
+          weightChartInstance.options.scales.y.ticks.color = textColor;
+          weightChartInstance.update();
+        } else {
+          weightChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Weight (kg)',
+                data: data,
+                borderColor: '#20F4C9',
+                backgroundColor: 'rgba(32, 244, 201, 0.1)',
+                borderWidth: 3,
+                pointBackgroundColor: '#3AA3FF',
+                pointBorderColor: '#fff',
+                pointRadius: 4,
+                fill: true,
+                tension: 0.4
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                x: { grid: { color: gridColor }, ticks: { color: textColor, font:{family:'Inter'} } },
+                y: { grid: { color: gridColor }, ticks: { color: textColor, font:{family:'Inter'} } }
+              }
+            }
+          });
+        }
+      }
+
+      function updateChartTheme() {
+        if(weightChartInstance) {
+          const isDark = document.documentElement.classList.contains('dark');
+          const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+          const textColor = isDark ? '#94a3b8' : '#64748b';
+          weightChartInstance.options.scales.x.grid.color = gridColor;
+          weightChartInstance.options.scales.y.grid.color = gridColor;
+          weightChartInstance.options.scales.x.ticks.color = textColor;
+          weightChartInstance.options.scales.y.ticks.color = textColor;
+          weightChartInstance.update();
+        }
+      }
+
+      // Manual Weight Logger
+      document.getElementById('addWeightLogBtn').addEventListener('click', () => {
+        const date = document.getElementById('logDate').value;
+        const weight = parseFloat(document.getElementById('logWeight').value);
+        if(!date || !weight) return;
+
+        const existingLogIndex = appState.weightHistory.findIndex(log => log.date === date);
+        if(existingLogIndex >= 0) {
+          appState.weightHistory[existingLogIndex].weight = weight;
+        } else {
+          appState.weightHistory.push({ date, weight });
+          appState.weightHistory.sort((a,b) => new Date(a.date) - new Date(b.date));
+        }
+        
+        // If logged date is today or later than profile, update profile weight too
+        if(new Date(date) >= new Date(appState.weightHistory[appState.weightHistory.length-1].date)) {
+           appState.profile.weight = weight;
+           populateForm();
+        }
+
+        saveState();
+        document.getElementById('logWeight').value = '';
+      });
+
+      // Hydration Logic
+      const goalWater = 3000;
+      function updateHydrationUI() {
+        const amt = appState.hydration.amount;
+        document.getElementById('waterCounterText').innerText = `${amt} / ${goalWater} ml`;
+        let pct = Math.min((amt / goalWater) * 100, 100);
+        document.getElementById('waterProgressBar').style.width = `${pct}%`;
+      }
+      
+      document.getElementById('addWaterBtn').addEventListener('click', () => {
+        appState.hydration.amount += 250;
+        saveState();
+      });
+      document.getElementById('subWaterBtn').addEventListener('click', () => {
+        appState.hydration.amount = Math.max(0, appState.hydration.amount - 250);
+        saveState();
+      });
+
+      // Health Score Calculator
+      function calculateHealthScore() {
+        const p = appState.profile;
+        if(!p.height || !p.weight) return;
+
+        let score = 50; // Base score
+        
+        // BMI Logic
+        const heightM = p.height / 100;
+        const bmi = p.weight / (heightM * heightM);
+        if(bmi >= 18.5 && bmi <= 24.9) score += 20;
+        else if (bmi >= 25 && bmi <= 29.9) score += 10;
+        else if (bmi < 18.5) score += 5;
+
+        // Activity Logic
+        if(p.activity >= 1.7) score += 15;
+        else if(p.activity >= 1.5) score += 10;
+        else if(p.activity >= 1.3) score += 5;
+
+        // Hydration Logic
+        const waterPct = appState.hydration.amount / goalWater;
+        score += Math.min(10, waterPct * 10);
+
+        // Mood Logic
+        if(p.mood === 'great') score += 5;
+        if(p.mood === 'stressed') score -= 5;
+
+        score = Math.max(0, Math.min(100, Math.round(score)));
+
+        // Update UI
+        document.getElementById('healthScoreText').innerText = score;
+        document.getElementById('healthScorePath').setAttribute('stroke-dasharray', `${score}, 100`);
+        
+        let desc = "Optimum Baseline.";
+        if(score < 50) desc = "Requires systemic intervention.";
+        else if(score < 75) desc = "Moderate performance zone.";
+        else if(score >= 85) desc = "Peak neural/physical sync.";
+        
+        // Dynamic coloring based on score
+        const path = document.getElementById('healthScorePath');
+        if(score > 75) { path.setAttribute('class', 'circle text-neon-teal'); document.getElementById('healthScoreText').className = 'text-4xl font-extrabold text-neon-teal'; }
+        else if (score > 50) { path.setAttribute('class', 'circle text-neon-blue'); document.getElementById('healthScoreText').className = 'text-4xl font-extrabold text-neon-blue'; }
+        else { path.setAttribute('class', 'circle text-neon-orange'); document.getElementById('healthScoreText').className = 'text-4xl font-extrabold text-neon-orange'; }
+
+        document.getElementById('healthScoreDesc').innerText = desc;
+      }
+
+      // Goal Prediction
+      function calculateGoalPrediction() {
+        const p = appState.profile;
+        if(!p.weight || !p.targetWeight) return;
+
+        const diff = p.weight - p.targetWeight;
+        let html = '';
+
+        if(Math.abs(diff) <= 0.5) {
+          html = `<div class="text-neon-teal font-bold flex items-center gap-2"><i data-lucide="check-circle"></i> Target Achieved!</div>`;
+        } else if (p.goal === 'lose-weight' && diff > 0) {
+          // Safe fat loss = ~0.5kg per week
+          const weeks = diff / 0.5;
+          const targetDate = new Date();
+          targetDate.setDate(targetDate.getDate() + (weeks * 7));
+          html = `
+            <div class="text-2xl font-bold text-slate-800 dark:text-white mb-1">${targetDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric'})}</div>
+            <p class="text-xs text-slate-500">Estimated achievement at a safe deficit (-0.5kg/wk).</p>
+          `;
+        } else if (p.goal === 'build-muscle' && diff < 0) {
+          // Lean bulk = ~0.25kg per week
+          const weeks = Math.abs(diff) / 0.25;
+          const targetDate = new Date();
+          targetDate.setDate(targetDate.getDate() + (weeks * 7));
+          html = `
+            <div class="text-2xl font-bold text-slate-800 dark:text-white mb-1">${targetDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric'})}</div>
+            <p class="text-xs text-slate-500">Estimated achievement via lean bulk (+0.25kg/wk).</p>
+          `;
+        } else {
+          html = `<p class="text-xs text-slate-500">Goal and Target Weight mismatch. Adjust settings.</p>`;
+        }
+        
+        document.getElementById('predictionOutput').innerHTML = html;
         lucide.createIcons();
       }
 
-      function pick(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+      // --- 5. TAB NAVIGATION ---
+      function switchTab(targetId) {
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          if(b.dataset.target === targetId) {
+            b.classList.add('bg-neon-blue', 'text-white', 'shadow-glowBlue', 'active');
+            b.classList.remove('text-slate-500', 'hover:text-slate-800', 'dark:hover:text-white');
+          } else {
+            b.classList.remove('bg-neon-blue', 'text-white', 'shadow-glowBlue', 'active');
+            b.classList.add('text-slate-500', 'hover:text-slate-800', 'dark:hover:text-white');
+          }
+        });
+        document.querySelectorAll('.tab-content').forEach(c => {
+          c.classList.add('hidden');
+          if(c.id === targetId) c.classList.remove('hidden');
+        });
+      }
 
-      // --- 3. MOOD ANALYZER ---
-      document.getElementById('analyzeMoodBtn').addEventListener('click', () => {
-        const text = document.getElementById('moodInput').value.toLowerCase();
-        const vocab = {
-          positive: ['happy','good','great','motivated','excited','calm','ready'],
-          negative: ['sad','tired','stressed','bad','anxious','angry','pain','hurt']
-        };
-        
-        let sentiment = 'Neutral';
-        if (vocab.positive.some(w => text.includes(w))) sentiment = 'Positive';
-        if (vocab.negative.some(w => text.includes(w))) sentiment = 'Negative/Stressed';
-
-        let advice = "Mental baseline stable. Consistency is the primary variable for success.";
-        if (sentiment === 'Positive') advice = "Neuro-physical baseline is optimal. Recommended: High-intensity output and progressive overload implementation today.";
-        if (sentiment === 'Negative/Stressed') advice = "Cortisol indicators detected. Protocol: Reduce spinal loading. Focus on metabolic blood flow, mobility work, and extended sleep cycles.";
-
-        const html = `
-          <div class="p-6 rounded-2xl glass border-l-4 ${sentiment==='Positive'?'border-neon-teal':'border-neon-pink'} animate-fade-in shadow-lg">
-            <h4 class="font-bold text-lg mb-1 flex items-center gap-2">
-              <i data-lucide="brain-circuit"></i> Mood Analysis: ${sentiment}
-            </h4>
-            <p class="text-sm opacity-80 leading-relaxed">${advice}</p>
-          </div>
-        `;
-        showOutput(html);
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => switchTab(e.currentTarget.dataset.target));
       });
 
-      // --- 4. DIET GENERATOR ---
-      document.getElementById('dietPlanBtn').addEventListener('click', () => {
-        // Gather Inputs
-        const age = parseFloat(document.getElementById('ageInput').value) || 25;
-        const gender = document.getElementById('genderInput').value;
-        const weight = parseFloat(document.getElementById('weightInput').value) || 70;
-        const height = parseFloat(document.getElementById('heightInput').value) || 175;
-        const activity = parseFloat(document.getElementById('activityInput').value);
-        const goal = document.getElementById('goalInput').value;
-        const dietType = document.getElementById('dietTypeInput').value;
-        const mealsCount = parseInt(document.getElementById('mealsPerDayInput').value);
+      // --- 6. GENERATORS (Diet & Training) ---
+      
+      const mealBanks = {
+        balanced: ["Oats with milk, banana, & almonds", "Grilled Chicken/Paneer with Rice & Veggies", "Greek Yogurt with berries", "Roti with Dal, Sabzi, & Salad", "Scrambled Eggs/Tofu with Toast"],
+        vegetarian: ["Poha/Upma with peas & peanuts", "Rajma (Kidney Beans) Curry with Rice", "Sprouted Moong Chaat", "Lentil Soup (Dal) with Roti", "Paneer Tikka with Green Salad"],
+        vegan: ["Oatmeal with soy/almond milk", "Tofu Stir-fry with Quinoa", "Avocado Toast with seeds", "Chickpea Curry with Rice", "Lentil Pasta with marinara sauce"],
+        "high-protein": ["3 Eggs (boiled or omelet) + Spinach", "Grilled Chicken Breast + Sweet Potato", "Protein Shake + Nuts", "Soya Chunks + Peas Curry", "Low-fat Paneer + Roti"]
+      };
 
-        // Calculation
-        let bmr = (10 * weight) + (6.25 * height) - (5 * age);
-        bmr += (gender === 'male' ? 5 : -161);
-        let tdee = bmr * activity;
-        if (goal === 'lose-weight') tdee -= 400;
-        if (goal === 'build-muscle') tdee += 300;
+      document.getElementById('dietPlanBtn').addEventListener('click', () => {
+        const p = appState.profile;
+        if(!p.weight) return alert("Please save your profile first.");
+
+        let bmr = (10 * p.weight) + (6.25 * p.height) - (5 * p.age);
+        bmr += (p.gender === 'male' ? 5 : -161);
+        let tdee = bmr * p.activity;
         
-        let protein = weight * (goal === 'build-muscle' ? 2 : 1.8);
-        if (dietType === 'high-protein') protein *= 1.2;
+        if (p.goal === 'lose-weight') tdee -= 400;
+        if (p.goal === 'build-muscle') tdee += 300;
         
-        const calsFromProtein = protein * 4;
-        const remainingCals = tdee - calsFromProtein;
-        const fatPct = 0.3; 
+        let protein = p.weight * (p.goal === 'build-muscle' ? 2.2 : 1.8);
+        if (p.dietType === 'high-protein') protein *= 1.2;
+        
         const fat = (tdee * 0.25) / 9; 
         const carbs = (tdee - (protein*4) - (fat*9)) / 4;
 
-        // Visual Bars
         const totalMass = protein + carbs + fat;
         const pPct = (protein/totalMass)*100;
         const cPct = (carbs/totalMass)*100;
         const fPct = (fat/totalMass)*100;
 
-        // Meals
-        const pool = mealBanks[dietType];
+        const pool = mealBanks[p.dietType] || mealBanks['balanced'];
+        const mealsCount = 4; // default to 4 for simplicity in new UI
         let mealListHtml = '';
-        const labels = mealsCount === 3 ? ['Breakfast','Lunch','Dinner'] 
-                     : mealsCount === 4 ? ['Breakfast','Lunch','Snack','Dinner']
-                     : ['Breakfast','Snack 1','Lunch','Snack 2','Dinner'];
+        const labels = ['Breakfast','Lunch','Snack','Dinner'];
         
         for(let i=0; i<mealsCount; i++) {
           mealListHtml += `
-            <div class="p-4 glass rounded-xl border-l-2 border-neon-blue group hover:bg-neon-blue/5 transition">
-              <span class="text-[10px] font-bold uppercase text-slate-400 block mb-1">${labels[i] || 'Meal '+(i+1)}</span>
-              <p class="font-medium text-sm group-hover:text-neon-blue transition-colors">${pool[i % pool.length]}</p>
+            <div class="p-4 glass rounded-xl border-l-2 border-neon-teal hover:translate-x-1 transition group">
+              <span class="text-[10px] font-bold uppercase text-slate-400 block mb-1">${labels[i]}</span>
+              <p class="font-medium text-sm group-hover:text-neon-teal transition-colors">${pool[i % pool.length]}</p>
             </div>`;
         }
 
         const html = `
-          <div class="animate-fade-in space-y-8">
-            <div class="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-4">
+          <div class="space-y-6">
+            <div class="flex items-center justify-between border-b border-white/10 pb-4">
               <div>
-                <h4 class="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-neon-teal to-neon-blue">Nutrition Protocol</h4>
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">${dietType} Strategy</p>
+                <h4 class="text-2xl font-extrabold text-neon-teal">Nutrition Protocol</h4>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">${p.dietType} • ${p.goal.replace('-',' ')}</p>
               </div>
-              <span class="px-4 py-2 rounded-xl glass text-sm font-bold border border-neon-teal/50 text-neon-teal shadow-glow">
-                ~${Math.round(tdee)} kcal
+              <span class="px-4 py-2 rounded-xl glass text-lg font-extrabold text-slate-800 dark:text-white shadow-glow">
+                ${Math.round(tdee)} <span class="text-xs text-slate-400 font-normal">kcal</span>
               </span>
             </div>
 
-            <!-- Macro Dashboard -->
-            <div class="space-y-4 p-6 glass rounded-2xl shadow-lg">
-              <div class="flex justify-between text-xs font-bold uppercase tracking-wider text-slate-500">
-                <span>Protein (${Math.round(protein)}g)</span>
-                <span>Carbs (${Math.round(carbs)}g)</span>
-                <span>Fats (${Math.round(fat)}g)</span>
+            <!-- Macros -->
+            <div class="p-6 glass rounded-2xl border border-white/10">
+              <div class="flex justify-between text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                <span>Pro: ${Math.round(protein)}g</span>
+                <span>Carb: ${Math.round(carbs)}g</span>
+                <span>Fat: ${Math.round(fat)}g</span>
               </div>
-              <div class="h-8 w-full bg-slate-200 dark:bg-black/40 rounded-full overflow-hidden flex shadow-inner relative">
-                <div style="width:${pPct}%" class="bg-neon-teal h-full relative group"><div class="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition"></div></div>
-                <div style="width:${cPct}%" class="bg-neon-blue h-full relative group"><div class="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition"></div></div>
-                <div style="width:${fPct}%" class="bg-neon-purple h-full relative group"><div class="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition"></div></div>
-              </div>
-              <div class="flex justify-between text-[10px] opacity-60 font-mono">
-                <span>P: ${Math.round(pPct)}%</span>
-                <span>C: ${Math.round(cPct)}%</span>
-                <span>F: ${Math.round(fPct)}%</span>
+              <div class="h-4 w-full bg-slate-200 dark:bg-black/40 rounded-full overflow-hidden flex shadow-inner">
+                <div style="width:${pPct}%" class="bg-neon-teal transition-all"></div>
+                <div style="width:${cPct}%" class="bg-neon-blue transition-all"></div>
+                <div style="width:${fPct}%" class="bg-neon-purple transition-all"></div>
               </div>
             </div>
 
@@ -638,170 +831,81 @@
             <div class="grid grid-cols-1 gap-3">
               ${mealListHtml}
             </div>
-            
-            <p class="text-xs text-center opacity-50 italic">
-              Drink at least 3-4 liters of water based on your activity level.
-            </p>
           </div>
         `;
-        showOutput(html);
+        
+        document.getElementById('dietOutput').innerHTML = html;
+        switchTab('tab-diet');
       });
 
-      // --- 5. WORKOUT GENERATOR ---
       document.getElementById('workoutPlanBtn').addEventListener('click', () => {
-        const days = parseInt(document.getElementById('daysPerWeekInput').value);
-        const equip = document.getElementById('equipmentInput').value;
-        const goal = document.getElementById('goalInput').value;
-        const selectedChecks = Array.from(document.querySelectorAll('#exerciseSelector input:checked')).map(i => i.value);
+        const p = appState.profile;
+        if(!p.weight) return alert("Please save your profile first.");
 
-        let splitName = "";
         let routine = [];
+        let splitName = "";
 
-        if (days === 3) {
-          splitName = "Full Body Reconstruction";
+        if (p.daysPerWeek === 3) {
+          splitName = "3-Day Full Body Foundation";
           routine = [
-            { day: "Day 1", focus: "Full Body A", moves: ["Squats", "Push-ups/Bench", "Rows", "Plank"] },
-            { day: "Day 2", focus: "Rest / Active Recovery", moves: ["Light Walk", "Stretching"] },
-            { day: "Day 3", focus: "Full Body B", moves: ["Deadlifts", "Overhead Press", "Lunges", "Side Plank"] },
-            { day: "Day 4", focus: "Rest", moves: [] },
-            { day: "Day 5", focus: "Full Body C", moves: ["Goblet Squats", "Dips", "Pull-ups/Lat Pulldown"] },
-            { day: "Weekend", focus: "Rest", moves: [] }
+            { day: "Day 1", focus: "Full Body A", moves: ["Squats 3x8", "Bench Press 3x8", "Barbell Rows 3x10", "Plank 3x60s"] },
+            { day: "Day 2", focus: "Rest / Active Recovery", moves: ["Light Cardio 20m", "Mobility Routine"] },
+            { day: "Day 3", focus: "Full Body B", moves: ["Deadlifts 3x5", "Overhead Press 3x8", "Lunges 3x12", "Side Plank 3x30s"] },
+            { day: "Day 5", focus: "Full Body C", moves: ["Goblet Squats 3x12", "Dips 3x10", "Pull-ups 3xMax"] },
           ];
-        } else if (days === 4) {
-          splitName = "Upper / Lower Split";
+        } else if (p.daysPerWeek === 4) {
+          splitName = "4-Day Upper/Lower Split";
           routine = [
-            { day: "Mon", focus: "Upper Power", moves: ["Bench Press", "Rows", "Overhead Press"] },
-            { day: "Tue", focus: "Lower Power", moves: ["Squats", "Deadlifts", "Calf Raises"] },
-            { day: "Wed", focus: "Rest", moves: ["Mobility"] },
-            { day: "Thu", focus: "Upper Hypertrophy", moves: ["Incline Press", "Pull-ups", "Bicep/Tricep"] },
-            { day: "Fri", focus: "Lower Hypertrophy", moves: ["Lunges", "Leg Press", "Planks"] },
-            { day: "Weekend", focus: "Rest", moves: [] }
-          ];
-        } else if (days === 5) {
-          splitName = "5-Day Hypertrophy Split";
-          routine = [
-             { day: "Day 1", focus: "Chest & Triceps", moves: ["Bench Press", "Incline Dumbbell Press", "Cable Flys", "Tricep Pushdowns"] },
-             { day: "Day 2", focus: "Back & Biceps", moves: ["Deadlifts", "Lat Pulldowns", "Barbell Rows", "Hammer Curls"] },
-             { day: "Day 3", focus: "Legs & Core", moves: ["Squats", "Leg Press", "Romanian Deadlifts", "Planks"] },
-             { day: "Day 4", focus: "Shoulders & Arms", moves: ["Overhead Press", "Lateral Raises", "Face Pulls", "Barbell Curls", "Skullcrushers"] },
-             { day: "Day 5", focus: "Full Body / Weak Points", moves: ["Lunges", "Dips", "Pull-ups", "Farmers Walk"] },
-             { day: "Weekend", focus: "Active Recovery", moves: ["Light Cardio", "Mobility Work"] }
+            { day: "Mon", focus: "Upper Power", moves: ["Bench Press 4x6", "Pendlay Rows 4x6", "OHP 3x8"] },
+            { day: "Tue", focus: "Lower Power", moves: ["Squats 4x6", "Romanian Deadlift 3x8", "Calf Raises 4x15"] },
+            { day: "Thu", focus: "Upper Hypertrophy", moves: ["Incline DB Press 3x10", "Lat Pulldown 3x10", "Bicep/Tricep Superset 3x12"] },
+            { day: "Fri", focus: "Lower Hypertrophy", moves: ["Leg Press 3x12", "Hamstring Curls 3x12", "Hanging Leg Raises 3x15"] },
           ];
         } else {
-          splitName = "6-Day Arnold Variation";
+          splitName = p.daysPerWeek === 5 ? "5-Day Hypertrophy Split" : "6-Day PPL Variation";
           routine = [
-            { day: "Day 1", focus: "Shoulders & Legs", moves: ["Overhead Press", "Lateral Raises", "Squats", "Leg Extensions", "Calf Raises"] },
-            { day: "Day 2", focus: "Chest & Triceps", moves: ["Bench Press", "Incline Dumbbell Press", "Dips", "Tricep Pushdowns", "Overhead Extensions"] },
-            { day: "Day 3", focus: "Back & Biceps", moves: ["Pull-ups/Lat Pulldown", "Barbell Rows", "Face Pulls", "Barbell Curls", "Hammer Curls"] },
-            { day: "Day 4", focus: "Shoulders & Legs", moves: ["Arnold Press", "Rear Delt Flys", "Leg Press", "Romanian Deadlifts", "Lunges"] },
-            { day: "Day 5", focus: "Chest & Triceps", moves: ["Chest Flys", "Push-ups", "Close-Grip Bench", "Skullcrushers"] },
-            { day: "Day 6", focus: "Back & Biceps", moves: ["Deadlifts", "Seated Cable Row", "Preacher Curls", "Concentration Curls"] },
-            { day: "Day 7", focus: "Rest", moves: ["Mobility", "Decompression"] }
+             { day: "Day 1", focus: "Push (Chest/Tri/Shoulders)", moves: ["Bench Press 4x8", "Overhead Press 3x10", "Lateral Raises 4x15", "Tricep Pushdowns 3x12"] },
+             { day: "Day 2", focus: "Pull (Back/Biceps)", moves: ["Deadlifts 3x5", "Pull-ups 3x10", "Face Pulls 3x15", "Hammer Curls 3x12"] },
+             { day: "Day 3", focus: "Legs (Quads/Hams/Calves)", moves: ["Squats 4x8", "Leg Press 3x12", "Leg Curls 3x12", "Calf Raises 4x20"] },
+             { day: "Day 4", focus: "Upper Body Focus", moves: ["Incline Press 3x10", "Seated Row 3x10", "DB Curls 3x12"] },
+             { day: "Day 5", focus: "Lower Body Focus", moves: ["Lunges 3x12", "RDLs 3x10", "Core Circuit"] }
           ];
+          if(p.daysPerWeek === 6) routine.push({ day: "Day 6", focus: "Weak Point Focus", moves: ["Arms/Shoulders Isolation", "Light Cardio"] });
         }
 
-        let cardsHtml = routine.map(r => {
-          if(r.moves.length === 0) return '';
-          return `
-            <div class="glass p-5 rounded-2xl hover:border-neon-blue/30 transition group">
-              <div class="flex justify-between mb-3 border-b border-slate-200 dark:border-white/5 pb-2">
-                <span class="text-neon-blue font-bold text-xs uppercase tracking-widest">${r.day}</span>
-                <span class="text-xs font-semibold opacity-60 group-hover:text-white transition">${r.focus}</span>
-              </div>
-              <ul class="space-y-2">
-                ${r.moves.map(m => `<li class="text-sm opacity-80 flex items-center gap-2"><div class="w-1 h-1 rounded-full bg-neon-blue"></div> ${m}</li>`).join('')}
-              </ul>
+        let cardsHtml = routine.map(r => `
+          <div class="glass p-5 rounded-2xl border border-white/5 hover:border-neon-blue/30 transition">
+            <div class="flex justify-between items-center mb-3 border-b border-white/10 pb-2">
+              <span class="text-neon-blue font-bold text-xs uppercase tracking-widest">${r.day}</span>
+              <span class="text-xs font-semibold opacity-70">${r.focus}</span>
             </div>
-          `;
-        }).join('');
-
-        let safetyHtml = '';
-        if (selectedChecks.length > 0) {
-          safetyHtml = `
-            <div class="mt-8 border-t border-slate-200 dark:border-white/10 pt-8 animate-fade-in">
-              <h5 class="text-xs font-bold uppercase text-neon-orange tracking-widest mb-4 flex items-center gap-2">
-                <i data-lucide="shield-check" class="h-4 w-4"></i> Selected Safety Protocols
-              </h5>
-              <div class="grid grid-cols-1 gap-4">
-                ${selectedChecks.map(key => `
-                  <div class="p-4 rounded-2xl bg-orange-500/5 border border-orange-500/20 shadow-glowOrange">
-                    <span class="text-[10px] font-bold uppercase text-neon-orange block mb-2 tracking-widest">${key} Checklist</span>
-                    <p class="text-sm leading-relaxed opacity-90">${safetyDB[key]}</p>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          `;
-        }
+            <ul class="space-y-2">
+              ${r.moves.map(m => `<li class="text-sm opacity-90 flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-neon-blue"></div> ${m}</li>`).join('')}
+            </ul>
+          </div>
+        `).join('');
 
         const html = `
-          <div class="animate-fade-in">
-            <div class="mb-8 text-center sm:text-left">
-              <h4 class="text-3xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-neon-blue to-neon-purple">
-                ${splitName}
-              </h4>
-              <p class="text-sm font-bold text-slate-400 uppercase tracking-widest">
-                Goal: ${goal.replace('-', ' ')} • Equip: ${equip}
+          <div class="space-y-6">
+            <div class="border-b border-white/10 pb-4">
+              <h4 class="text-2xl font-extrabold text-neon-blue mb-1">${splitName}</h4>
+              <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                Optimized for: ${p.equipment} • Goal: ${p.goal.replace('-',' ')}
               </p>
             </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               ${cardsHtml}
             </div>
-
-            ${safetyHtml}
           </div>
         `;
-        showOutput(html);
+
+        document.getElementById('workoutOutput').innerHTML = html;
+        switchTab('tab-training');
       });
 
-      // --- 6. SAFETY ONLY GENERATOR ---
-      document.getElementById('safetyOnlyBtn').addEventListener('click', () => {
-        const selectedChecks = Array.from(document.querySelectorAll('#exerciseSelector input:checked')).map(i => i.value);
-        
-        if (selectedChecks.length === 0) {
-          showOutput(`
-            <div class="flex flex-col items-center justify-center h-full text-center p-10 animate-fade-in">
-              <div class="h-16 w-16 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-4">
-                <i data-lucide="shield-alert" class="h-8 w-8 text-neon-orange"></i>
-              </div>
-              <h4 class="text-xl font-bold text-slate-400">No Exercises Selected</h4>
-              <p class="text-sm opacity-60 mt-2 max-w-xs">Please select at least one exercise from the checklist on the left to generate a report.</p>
-            </div>
-          `);
-          return;
-        }
-
-        const html = `
-          <div class="animate-fade-in">
-            <div class="flex items-center gap-4 mb-8 border-b border-slate-200 dark:border-white/10 pb-6">
-               <div class="h-12 w-12 rounded-xl bg-neon-orange/10 flex items-center justify-center text-neon-orange shadow-glowOrange">
-                 <i data-lucide="shield-check" class="h-6 w-6"></i>
-               </div>
-               <div>
-                 <h4 class="text-2xl font-extrabold text-slate-800 dark:text-white">Technical Safety Report</h4>
-                 <p class="text-xs font-bold text-neon-orange uppercase tracking-widest">Kinesiology & Form Protocol</p>
-               </div>
-            </div>
-
-            <div class="grid grid-cols-1 gap-6">
-              ${selectedChecks.map(key => `
-                <div class="p-6 rounded-3xl glass border-l-4 border-neon-orange shadow-lg hover:translate-x-1 transition">
-                  <span class="text-xs font-bold uppercase text-neon-orange block mb-2 tracking-widest flex items-center gap-2">
-                    <i data-lucide="check-circle-2" class="h-3 w-3"></i> ${key} Analysis
-                  </span>
-                  <p class="text-sm leading-relaxed opacity-90 font-medium">${safetyDB[key]}</p>
-                </div>
-              `).join('')}
-            </div>
-            
-            <p class="text-xs text-center opacity-40 mt-10 font-mono">
-              *Disclaimer: Form guide based on standard biomechanics. Consult a coach for personal correction.
-            </p>
-          </div>
-        `;
-        showOutput(html);
-      });
+      // --- 7. BOOTSTRAP ---
+      populateForm();
+      updateDashboard();
 
     });
   </script>
